@@ -27,10 +27,10 @@ parser.add_argument("-c", "--comport", type=str,
                     help="The number of the COM device to connect to. E.G 'COM5'")
 parser.add_argument("-b", "--baudrate", type=int, default=115200,
                     help="The baudrate of the serial port.")
-parser.add_argument("-o", "--output", action="store_true",
-                    help="Prints the traffic to the console.")
+parser.add_argument("-s", "--show", action="store_true",
+                    help="Shows the traffic on the console.")
 parser.add_argument("-d", "--debug", action="store_true",
-                    help="Enables debug output.")
+                    help="Enables debug printing.")
 args = parser.parse_args()
 
 # Global queues used between threads.
@@ -117,7 +117,7 @@ def listen_named_pipe():
                         continue
 
                     write_log(False, data)
-                    if args.output:
+                    if args.show:
                         text = data.decode('ascii', errors='replace')
                         print(f"{text}")
                     out_queue.put(data)
@@ -125,7 +125,7 @@ def listen_named_pipe():
                 while not in_queue.empty():
                     data = in_queue.get()
                     write_log(True, data)
-                    if args.output:
+                    if args.show:
                         text = data.decode('ascii', errors='replace')
                         # prints with red color
                         print("\033[31m" + text + "\033[0m")
@@ -151,7 +151,7 @@ def listen_com_port():
         if serial_port.in_waiting > 0:
             data = serial_port.read(size=serial_port.in_waiting)
             write_log(False, data)
-            if args.output:
+            if args.show:
                 text = data.decode('ascii', errors='replace')
                 print(f"{text}")
             out_queue.put(data)
@@ -159,7 +159,7 @@ def listen_com_port():
         while not in_queue.empty():
             data = in_queue.get()
             write_log(True, data)
-            if args.output:
+            if args.show:
                 text = data.decode('ascii', errors='replace')
                 # prints with red color
                 print("\033[31m" + text + "\033[0m")
