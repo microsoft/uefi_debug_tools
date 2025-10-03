@@ -109,7 +109,7 @@ readmsr (
   INIT_API ();
 
   if (strlen (args) == 0) {
-    dprintf ("Must provide MSR index in HEX!");
+    dprintf ("Must provide MSR index in HEX! E.g. 0x1234\n");
   }
 
   sprintf_s (Command, sizeof (Command), "m%s", args);
