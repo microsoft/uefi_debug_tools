@@ -16,6 +16,188 @@ Abstract:
 --*/
 
 #include "uefiext.h"
+#include <winnt.h>
+#include <vector>
+#include <cstring>
+
+VOID
+LoadCompositionExtensions (
+  )
+{
+  static BOOLEAN  Loaded = FALSE;
+
+  if (!Loaded) {
+    dprintf ("Loading target composition extensions.\n");
+    g_ExtControl->Execute (
+                    DEBUG_OUTCTL_ALL_CLIENTS,
+                    ".load ELFBinComposition",
+                    DEBUG_EXECUTE_DEFAULT
+                    );
+
+    //
+    // TODO: Load additional target composition binaries when completed.
+    //
+
+    Loaded = TRUE;
+  }
+}
+
+BOOLEAN
+ReloadModuleFromPeDebug (
+  ULONG64  Address
+  )
+{
+  ULONG             BytesRead = 0;
+  IMAGE_DOS_HEADER  DosHeader;
+
+  // Read DOS header
+  if (!ReadMemory (Address, &DosHeader, sizeof (DosHeader), &BytesRead) || (BytesRead != sizeof (DosHeader))) {
+    dprintf ("Failed to read DOS header at %llx\n", Address);
+    return false;
+  }
+
+  if (DosHeader.e_magic != IMAGE_DOS_SIGNATURE) {
+    dprintf ("Invalid DOS header magic at %llx\n", Address);
+    return false;
+  }
+
+  // Read NT headers
+  ULONG64             NtHeadersAddr = Address + DosHeader.e_lfanew;
+  IMAGE_NT_HEADERS64  NtHeaders64   = { 0 };
+
+  if (!ReadMemory (NtHeadersAddr, &NtHeaders64, sizeof (NtHeaders64), &BytesRead)) {
+    dprintf ("Failed to read NT headers at %llx\n", NtHeadersAddr);
+    return false;
+  }
+
+  // Ensure this is a 64-bit optional header
+  if (NtHeaders64.OptionalHeader.Magic != IMAGE_NT_OPTIONAL_HDR64_MAGIC) {
+    dprintf ("Not a 64-bit PE image at %llx\n", Address);
+    return false;
+  }
+
+  // Determine Debug Directory RVA and size and image size from 64-bit OptionalHeader
+  UINT32  DebugDirRVA  = NtHeaders64.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
+  UINT32  DebugDirSize = NtHeaders64.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size;
+  UINT32  ImageSize    = NtHeaders64.OptionalHeader.SizeOfImage;
+
+  if ((DebugDirRVA == 0) || (DebugDirSize == 0)) {
+    dprintf ("No debug directory in PE image at %llx\n", Address);
+    return false;
+  }
+
+  // Read debug directory entries
+  ULONG                               NumEntries   = DebugDirSize / sizeof (IMAGE_DEBUG_DIRECTORY);
+  ULONG64                             DebugDirAddr = Address + DebugDirRVA;
+  std::vector<IMAGE_DEBUG_DIRECTORY>  DebugEntries;
+
+  DebugEntries.resize (NumEntries);
+  if (!ReadMemory (DebugDirAddr, DebugEntries.data (), DebugDirSize, &BytesRead) || (BytesRead != DebugDirSize)) {
+    dprintf ("Failed to read debug directory at %llx\n", DebugDirAddr);
+    return false;
+  }
+
+  // Look for CodeView entry
+  for (ULONG i = 0; i < NumEntries; i++) {
+    IMAGE_DEBUG_DIRECTORY  &Entry = DebugEntries[i];
+    if (Entry.Type == IMAGE_DEBUG_TYPE_CODEVIEW) {
+      ULONG64  CvAddr = 0;
+      // If AddressOfRawData appears to be an absolute VA within the loaded image range, use it directly.
+      if ((Entry.AddressOfRawData != 0) && (Entry.AddressOfRawData >= Address) && (Entry.AddressOfRawData < (Address + (ULONG64)NtHeaders64.OptionalHeader.SizeOfImage))) {
+        CvAddr = Entry.AddressOfRawData;
+      } else if (Entry.AddressOfRawData != 0) {
+        // Treat as relative
+        CvAddr = Address + Entry.AddressOfRawData;
+      } else if (Entry.PointerToRawData != 0) {
+        // Treat PointerToRawData as file offset mapped into memory at image base
+        CvAddr = Address + Entry.PointerToRawData;
+      } else {
+        dprintf ("Debug entry has no raw data address for %llx\n", Address);
+        continue;
+      }
+
+      // Read the CodeView signature
+      CHAR  Signature[5] = { 0 };
+      if (!ReadMemory (CvAddr, Signature, 4, &BytesRead) || (BytesRead != 4)) {
+        continue;
+      }
+
+      ULONG  CvHeaderSize = 0;
+      if (strncmp (Signature, "RSDS", 4) == 0) {
+        CvHeaderSize = 24;
+      } else if (strncmp (Signature, "NB10", 4) == 0) {
+        CvHeaderSize = 16;
+      } else {
+        dprintf ("Unsupported CodeView signature '%c%c%c%c' at %llx\n", Signature[0], Signature[1], Signature[2], Signature[3], CvAddr);
+        continue;
+      }
+
+      ULONG64  PdbPathAddr = CvAddr + CvHeaderSize;
+
+      // Read PDB path using the size from the debug directory
+      CHAR   PdbPath[1024] = { 0 };
+      ULONG  SizeToRead;
+      if ((Entry.SizeOfData != 0) && (Entry.SizeOfData > CvHeaderSize)) {
+        ULONG64  Rem = Entry.SizeOfData - CvHeaderSize;
+        SizeToRead = (ULONG)((Rem < (sizeof (PdbPath) - 1)) ? Rem : (sizeof (PdbPath) - 1));
+      } else {
+        SizeToRead = (ULONG)(sizeof (PdbPath) - 1);
+      }
+
+      if (!ReadMemory (PdbPathAddr, PdbPath, SizeToRead, &BytesRead) || (BytesRead == 0)) {
+        dprintf ("Failed to read PDB path at %llx (size %lu)\n", PdbPathAddr, SizeToRead);
+        continue;
+      }
+
+      // Ensure null termination even if partial read
+      PdbPath[(BytesRead < (sizeof (PdbPath) - 1)) ? BytesRead : (sizeof (PdbPath) - 1)] = '\0';
+
+      // Check for the .dll extension. This indicates that this is a GenFW converted module.
+      // To load symbols for these, we need to load the compositions extensions.
+      if (strstr (PdbPath, ".dll") != NULL) {
+        LoadCompositionExtensions ();
+      }
+
+      // Extract the filename from the path
+      CHAR  *basename = PdbPath;
+      CHAR  *p        = PdbPath;
+      while (*p) {
+        if ((*p == '\\') || (*p == '/')) {
+          basename = p + 1;
+        }
+
+        p++;
+      }
+
+      // Remove extension
+      CHAR  ModuleName[256] = { 0 };
+      strncpy_s (ModuleName, sizeof (ModuleName), basename, _TRUNCATE);
+      CHAR  *dot = strrchr (ModuleName, '.');
+      if (dot) {
+        *dot = '\0';
+      }
+
+      // Add a .efi extension, this is needed for the way symbols are resolved
+      // for GenFW converted modules.
+      CHAR  EfiName[256] = { 0 };
+      sprintf_s (EfiName, sizeof (EfiName), "%s.efi", ModuleName);
+
+      // Build .reload command. Include size if we have one.
+      CHAR  Command[512];
+      if (ImageSize != 0) {
+        sprintf_s (Command, sizeof (Command), ".reload %s=%I64x,%I32x", EfiName, Address, ImageSize);
+      } else {
+        sprintf_s (Command, sizeof (Command), ".reload %s=%I64x", EfiName, Address);
+      }
+
+      g_ExtControl->Execute (DEBUG_OUTCTL_ALL_CLIENTS, Command, DEBUG_EXECUTE_DEFAULT);
+      return true;
+    }
+  }
+
+  dprintf ("Failed to locate CodeView PDB path at %llx\n", Address);
+  return false;
+}
 
 HRESULT
 FindModuleBackwards (
@@ -56,6 +238,15 @@ FindModuleBackwards (
     }
 
     if ((Check & 0xFFFF) == Magic) {
+      dprintf ("Found PE/COFF image at %llx\n", Address);
+      // First try to treat this as a PE/COFF image and reload using debug info (CodeView/PDB)
+      if (ReloadModuleFromPeDebug (Address)) {
+        Result = S_OK;
+        break;
+      }
+
+      // If that fails, see if imgscan can find it.
+      dprintf ("Falling back to .imgscan for module at %llx\n", Address);
       sprintf_s (&Command[0], sizeof (Command), ".imgscan /l /r %I64x %I64x", Address, Address + 0xFFF);
       g_ExtControl->Execute (
                       DEBUG_OUTCTL_ALL_CLIENTS,
@@ -66,12 +257,7 @@ FindModuleBackwards (
       Result = S_OK;
       break;
     } else if (Check == ElfMagic) {
-      sprintf_s (&Command[0], sizeof (Command), "!uefiext.elf %I64x", Address);
-      g_ExtControl->Execute (
-                      DEBUG_OUTCTL_ALL_CLIENTS,
-                      &Command[0],
-                      DEBUG_EXECUTE_DEFAULT
-                      );
+      dprintf ("Found ELF image at %llx. ELF images not yet supported.\n", Address);
 
       Result = S_OK;
       break;
@@ -183,12 +369,15 @@ loadmodules (
     }
 
     dprintf ("Loading module at %llx\n", ImageBase);
-    sprintf_s (Command, sizeof (Command), ".imgscan /l /r %I64x (%I64x + 0xFFF)", ImageBase, ImageBase);
-    g_ExtControl->Execute (
-                    DEBUG_OUTCTL_ALL_CLIENTS,
-                    Command,
-                    DEBUG_EXECUTE_DEFAULT
-                    );
+    if (!ReloadModuleFromPeDebug (ImageBase)) {
+      // If ReloadModuleFromPeDebug fails, fall back to .imgscan
+      sprintf_s (Command, sizeof (Command), ".imgscan /l /r %I64x (%I64x + 0xFFF)", ImageBase, ImageBase);
+      g_ExtControl->Execute (
+                      DEBUG_OUTCTL_ALL_CLIENTS,
+                      Command,
+                      DEBUG_EXECUTE_DEFAULT
+                      );
+    }
   }
 
   return S_OK;
