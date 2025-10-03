@@ -47,8 +47,32 @@ ReloadModuleFromPeDebug (
   ULONG64  Address
   )
 {
-  ULONG             BytesRead = 0;
-  IMAGE_DOS_HEADER  DosHeader;
+  ULONG                               BytesRead;
+  IMAGE_DOS_HEADER                    DosHeader;
+  ULONG64                             NtHeadersAddr;
+  IMAGE_NT_HEADERS64                  NtHeaders64;
+  UINT32                              DebugDirRVA;
+  UINT32                              DebugDirSize;
+  UINT32                              ImageSize;
+  ULONG                               NumEntries;
+  ULONG64                             DebugDirAddr;
+  std::vector<IMAGE_DEBUG_DIRECTORY>  DebugEntries;
+  ULONG                               i;
+  IMAGE_DEBUG_DIRECTORY               *Entry;
+  ULONG64                             CvAddr;
+  CHAR                                Signature[5];
+  ULONG                               CvHeaderSize;
+  ULONG64                             PdbPathAddr;
+  CHAR                                PdbPath[1024];
+  ULONG                               SizeToRead;
+  CHAR                                *basename;
+  CHAR                                *p;
+  CHAR                                ModuleName[256];
+  CHAR                                *dot;
+  CHAR                                EfiName[256];
+  CHAR                                Command[512];
+
+  BytesRead = 0;
 
   // Read DOS header
   if (!ReadMemory (Address, &DosHeader, sizeof (DosHeader), &BytesRead) || (BytesRead != sizeof (DosHeader))) {
@@ -62,8 +86,8 @@ ReloadModuleFromPeDebug (
   }
 
   // Read NT headers
-  ULONG64             NtHeadersAddr = Address + DosHeader.e_lfanew;
-  IMAGE_NT_HEADERS64  NtHeaders64   = { 0 };
+  NtHeadersAddr = Address + DosHeader.e_lfanew;
+  NtHeaders64   = { 0 };
 
   if (!ReadMemory (NtHeadersAddr, &NtHeaders64, sizeof (NtHeaders64), &BytesRead)) {
     dprintf ("Failed to read NT headers at %llx\n", NtHeadersAddr);
@@ -77,9 +101,9 @@ ReloadModuleFromPeDebug (
   }
 
   // Determine Debug Directory RVA and size and image size from 64-bit OptionalHeader
-  UINT32  DebugDirRVA  = NtHeaders64.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
-  UINT32  DebugDirSize = NtHeaders64.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size;
-  UINT32  ImageSize    = NtHeaders64.OptionalHeader.SizeOfImage;
+  DebugDirRVA  = NtHeaders64.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
+  DebugDirSize = NtHeaders64.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size;
+  ImageSize    = NtHeaders64.OptionalHeader.SizeOfImage;
 
   if ((DebugDirRVA == 0) || (DebugDirSize == 0)) {
     dprintf ("No debug directory in PE image at %llx\n", Address);
@@ -87,10 +111,8 @@ ReloadModuleFromPeDebug (
   }
 
   // Read debug directory entries
-  ULONG                               NumEntries   = DebugDirSize / sizeof (IMAGE_DEBUG_DIRECTORY);
-  ULONG64                             DebugDirAddr = Address + DebugDirRVA;
-  std::vector<IMAGE_DEBUG_DIRECTORY>  DebugEntries;
-
+  NumEntries   = DebugDirSize / sizeof (IMAGE_DEBUG_DIRECTORY);
+  DebugDirAddr = Address + DebugDirRVA;
   DebugEntries.resize (NumEntries);
   if (!ReadMemory (DebugDirAddr, DebugEntries.data (), DebugDirSize, &BytesRead) || (BytesRead != DebugDirSize)) {
     dprintf ("Failed to read debug directory at %llx\n", DebugDirAddr);
@@ -98,31 +120,31 @@ ReloadModuleFromPeDebug (
   }
 
   // Look for CodeView entry
-  for (ULONG i = 0; i < NumEntries; i++) {
-    IMAGE_DEBUG_DIRECTORY  &Entry = DebugEntries[i];
-    if (Entry.Type == IMAGE_DEBUG_TYPE_CODEVIEW) {
-      ULONG64  CvAddr = 0;
+  for (i = 0; i < NumEntries; i++) {
+    Entry = &DebugEntries[i];
+    if (Entry->Type == IMAGE_DEBUG_TYPE_CODEVIEW) {
+      CvAddr = 0;
       // If AddressOfRawData appears to be an absolute VA within the loaded image range, use it directly.
-      if ((Entry.AddressOfRawData != 0) && (Entry.AddressOfRawData >= Address) && (Entry.AddressOfRawData < (Address + (ULONG64)NtHeaders64.OptionalHeader.SizeOfImage))) {
-        CvAddr = Entry.AddressOfRawData;
-      } else if (Entry.AddressOfRawData != 0) {
+      if ((Entry->AddressOfRawData != 0) && (Entry->AddressOfRawData >= Address) && (Entry->AddressOfRawData < (Address + (ULONG64)NtHeaders64.OptionalHeader.SizeOfImage))) {
+        CvAddr = Entry->AddressOfRawData;
+      } else if (Entry->AddressOfRawData != 0) {
         // Treat as relative
-        CvAddr = Address + Entry.AddressOfRawData;
-      } else if (Entry.PointerToRawData != 0) {
+        CvAddr = Address + Entry->AddressOfRawData;
+      } else if (Entry->PointerToRawData != 0) {
         // Treat PointerToRawData as file offset mapped into memory at image base
-        CvAddr = Address + Entry.PointerToRawData;
+        CvAddr = Address + Entry->PointerToRawData;
       } else {
         dprintf ("Debug entry has no raw data address for %llx\n", Address);
         continue;
       }
 
       // Read the CodeView signature
-      CHAR  Signature[5] = { 0 };
+      memset (Signature, 0, sizeof (Signature));
       if (!ReadMemory (CvAddr, Signature, 4, &BytesRead) || (BytesRead != 4)) {
         continue;
       }
 
-      ULONG  CvHeaderSize = 0;
+      CvHeaderSize = 0;
       if (strncmp (Signature, "RSDS", 4) == 0) {
         CvHeaderSize = 24;
       } else if (strncmp (Signature, "NB10", 4) == 0) {
@@ -132,13 +154,12 @@ ReloadModuleFromPeDebug (
         continue;
       }
 
-      ULONG64  PdbPathAddr = CvAddr + CvHeaderSize;
+      PdbPathAddr = CvAddr + CvHeaderSize;
 
       // Read PDB path using the size from the debug directory
-      CHAR   PdbPath[1024] = { 0 };
-      ULONG  SizeToRead;
-      if ((Entry.SizeOfData != 0) && (Entry.SizeOfData > CvHeaderSize)) {
-        ULONG64  Rem = Entry.SizeOfData - CvHeaderSize;
+      memset (PdbPath, 0, sizeof (PdbPath));
+      if ((Entry->SizeOfData != 0) && (Entry->SizeOfData > CvHeaderSize)) {
+        ULONG64  Rem = Entry->SizeOfData - CvHeaderSize;
         SizeToRead = (ULONG)((Rem < (sizeof (PdbPath) - 1)) ? Rem : (sizeof (PdbPath) - 1));
       } else {
         SizeToRead = (ULONG)(sizeof (PdbPath) - 1);
@@ -159,8 +180,8 @@ ReloadModuleFromPeDebug (
       }
 
       // Extract the filename from the path
-      CHAR  *basename = PdbPath;
-      CHAR  *p        = PdbPath;
+      basename = PdbPath;
+      p        = PdbPath;
       while (*p) {
         if ((*p == '\\') || (*p == '/')) {
           basename = p + 1;
@@ -170,20 +191,19 @@ ReloadModuleFromPeDebug (
       }
 
       // Remove extension
-      CHAR  ModuleName[256] = { 0 };
+      memset (ModuleName, 0, sizeof (ModuleName));
       strncpy_s (ModuleName, sizeof (ModuleName), basename, _TRUNCATE);
-      CHAR  *dot = strrchr (ModuleName, '.');
+      dot = strrchr (ModuleName, '.');
       if (dot) {
         *dot = '\0';
       }
 
       // Add a .efi extension, this is needed for the way symbols are resolved
       // for GenFW converted modules.
-      CHAR  EfiName[256] = { 0 };
+      memset (EfiName, 0, sizeof (EfiName));
       sprintf_s (EfiName, sizeof (EfiName), "%s.efi", ModuleName);
 
       // Build .reload command. Include size if we have one.
-      CHAR  Command[512];
       if (ImageSize != 0) {
         sprintf_s (Command, sizeof (Command), ".reload %s=%I64x,%I32x", EfiName, Address, ImageSize);
       } else {
