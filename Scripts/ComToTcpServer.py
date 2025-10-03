@@ -27,8 +27,10 @@ parser.add_argument("-c", "--comport", type=str,
                     help="The number of the COM device to connect to. E.G 'COM5'")
 parser.add_argument("-b", "--baudrate", type=int, default=115200,
                     help="The baudrate of the serial port.")
-parser.add_argument("-v", "--verbose", action="store_true",
-                    help="Enabled verbose prints.")
+parser.add_argument("-s", "--show", action="store_true",
+                    help="Shows the traffic on the console.")
+parser.add_argument("-d", "--debug", action="store_true",
+                    help="Enables debug printing.")
 args = parser.parse_args()
 
 # Global queues used between threads.
@@ -115,20 +117,23 @@ def listen_named_pipe():
                         continue
 
                     write_log(False, data)
-                    if args.verbose:
-                        print(f"OUT: {data}")
+                    if args.show:
+                        text = data.decode('ascii', errors='replace')
+                        print(f"{text}")
                     out_queue.put(data)
 
                 while not in_queue.empty():
                     data = in_queue.get()
                     write_log(True, data)
-                    if args.verbose:
-                        print(f"IN: {data}")
+                    if args.show:
+                        text = data.decode('ascii', errors='replace')
+                        # prints with red color
+                        print("\033[31m" + text + "\033[0m")
                     win32file.WriteFile(handle, data, None)
 
         except pywintypes.error as e:
             if e.args[0] == 2:
-                if args.verbose:
+                if args.debug:
                     print("No pipe yet, waiting...")
                 time.sleep(1)
             elif e.args[0] == 109:
@@ -146,15 +151,18 @@ def listen_com_port():
         if serial_port.in_waiting > 0:
             data = serial_port.read(size=serial_port.in_waiting)
             write_log(False, data)
-            if args.verbose:
-                print(f"OUT: {data}")
+            if args.show:
+                text = data.decode('ascii', errors='replace')
+                print(f"{text}")
             out_queue.put(data)
 
         while not in_queue.empty():
             data = in_queue.get()
             write_log(True, data)
-            if args.verbose:
-                print(f"IN: {data}")
+            if args.show:
+                text = data.decode('ascii', errors='replace')
+                # prints with red color
+                print("\033[31m" + text + "\033[0m")
             serial_port.write(data)
 
 def main():

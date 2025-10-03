@@ -169,7 +169,6 @@ help (
     "  monitor             - Sends direct monitor commands\n"
     "  modulebreak         - Sets a break on load for the provided module. e.g. 'shell'\n"
     "  readmsr             - Reads a MSR value (x86 only)\n"
-    "  readvar             - Reads a UEFI variable\n"
     "  reboot              - Reboots the system\n"
     );
 
