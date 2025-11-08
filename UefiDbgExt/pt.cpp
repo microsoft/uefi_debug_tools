@@ -127,6 +127,96 @@ typedef struct _HARDWARE_PTE_ARM64 {
   };
 } HARDWARE_PTE_ARM64, *PHARDWARE_PTE_ARM64;
 
+/*
+
+Attr<n>[7:4] Meaning
+0000              Device memory. See encoding of Attr<n>[3:0] for the type of Device memory.
+00RW, RW not 00   Normal memory, Outer Write-Through Transient
+0100              Normal memory, Outer Non-cacheable
+01RW, RW not 00   Normal memory, Outer Write-Back Transient
+10RW              Normal memory, Outer Write-Through Non-transient
+11RW              Normal memory, Outer Write-Back Non-transient
+
+Attr<n>[3:0] Meaning when Attr<n>[7:4] is 0000              Meaning when Attr<n>[7:4] is not 0000
+0000              Device-nGnRnE memory                        UNPREDICTABLE
+00RW, RW not 00   UNPREDICTABLE                               Normal Memory, Inner Write-through transient
+0100              Device-nGnRE memory                         Normal memory, Inner Non-cacheable
+01RW, RW not 00   UNPREDICTABLE                               Normal Memory, Inner Write-back transient
+1000              Device-nGRE memory                          Normal Memory, Inner Write-through non-transient (RW=00)
+10RW, RW not 00   UNPREDICTABLE                               Normal Memory, Inner Write-through non-transient
+1100              Device-GRE memory                           Normal Memory, Inner Write-back non-transient (RW=00)
+11RW, RW not 00   UNPREDICTABLE                               Normal Memory, Inner Write-back non-transient
+
+*/
+
+typedef struct _MAIR_ATTR {
+  UINT8    Attribute;
+  PCSTR    Description;
+} MAIR_ATTR, *PMAIR_ATTR;
+
+#define UNPREDICTABLE_MEMORY                       "UNPREDICTABLE"
+#define DEVICE_MEMORY                              "Device memory"
+#define NORMAL_MEMORY_WRITE_THROUGH_TRANSIENT      "Write-Through Transient"
+#define NORMAL_MEMORY_NON_CACHABLE                 "Non-cacheable"
+#define NORMAL_MEMORY_WRITE_BACK_TRANSIENT         "Write-Back Transient"
+#define NORMAL_MEMORY_WRITE_THROUGH_NON_TRANSIENT  "Write-Through Non-transient"
+#define NORMAL_MEMORY_WRITE_BACK_NON_TRANSIENT     "Write-Back Non-transient"
+
+#define MAKE_ATTR(_a, _b)  ((_a << 2) | _b)
+
+//
+// Outer Attributes
+//
+
+MAIR_ATTR  MairAttr7_4[] = {
+  { MAKE_ATTR (0x0, 0x0), DEVICE_MEMORY                             },
+  { MAKE_ATTR (0x0, 0x1), NORMAL_MEMORY_WRITE_THROUGH_TRANSIENT     },
+  { MAKE_ATTR (0x0, 0x2), NORMAL_MEMORY_WRITE_THROUGH_TRANSIENT     },
+  { MAKE_ATTR (0x0, 0x3), NORMAL_MEMORY_WRITE_THROUGH_TRANSIENT     },
+  { MAKE_ATTR (0x1, 0x0), NORMAL_MEMORY_NON_CACHABLE                },
+  { MAKE_ATTR (0x1, 0x1), NORMAL_MEMORY_WRITE_BACK_TRANSIENT        },
+  { MAKE_ATTR (0x1, 0x2), NORMAL_MEMORY_WRITE_BACK_TRANSIENT        },
+  { MAKE_ATTR (0x1, 0x3), NORMAL_MEMORY_WRITE_BACK_TRANSIENT        },
+  { MAKE_ATTR (0x2, 0x0), NORMAL_MEMORY_WRITE_THROUGH_NON_TRANSIENT },
+  { MAKE_ATTR (0x2, 0x1), NORMAL_MEMORY_WRITE_THROUGH_NON_TRANSIENT },
+  { MAKE_ATTR (0x2, 0x2), NORMAL_MEMORY_WRITE_THROUGH_NON_TRANSIENT },
+  { MAKE_ATTR (0x2, 0x3), NORMAL_MEMORY_WRITE_THROUGH_NON_TRANSIENT },
+  { MAKE_ATTR (0x3, 0x0), NORMAL_MEMORY_WRITE_BACK_NON_TRANSIENT    },
+  { MAKE_ATTR (0x3, 0x1), NORMAL_MEMORY_WRITE_BACK_NON_TRANSIENT    },
+  { MAKE_ATTR (0x3, 0x2), NORMAL_MEMORY_WRITE_BACK_NON_TRANSIENT    },
+  { MAKE_ATTR (0x3, 0x3), NORMAL_MEMORY_WRITE_BACK_NON_TRANSIENT    }
+};
+
+//
+// Inner attributes.
+//
+
+MAIR_ATTR  MairAttr3_0[] = {
+  { MAKE_ATTR (0x0, 0x0), UNPREDICTABLE_MEMORY                      },
+  { MAKE_ATTR (0x0, 0x1), NORMAL_MEMORY_WRITE_THROUGH_TRANSIENT     },
+  { MAKE_ATTR (0x0, 0x2), NORMAL_MEMORY_WRITE_THROUGH_TRANSIENT     },
+  { MAKE_ATTR (0x0, 0x3), NORMAL_MEMORY_WRITE_THROUGH_TRANSIENT     },
+  { MAKE_ATTR (0x1, 0x0), NORMAL_MEMORY_NON_CACHABLE                },
+  { MAKE_ATTR (0x1, 0x1), NORMAL_MEMORY_WRITE_BACK_TRANSIENT        },
+  { MAKE_ATTR (0x1, 0x2), NORMAL_MEMORY_WRITE_BACK_TRANSIENT        },
+  { MAKE_ATTR (0x1, 0x3), NORMAL_MEMORY_WRITE_BACK_TRANSIENT        },
+  { MAKE_ATTR (0x2, 0x0), NORMAL_MEMORY_WRITE_THROUGH_NON_TRANSIENT },
+  { MAKE_ATTR (0x2, 0x1), NORMAL_MEMORY_WRITE_THROUGH_NON_TRANSIENT },
+  { MAKE_ATTR (0x2, 0x2), NORMAL_MEMORY_WRITE_THROUGH_NON_TRANSIENT },
+  { MAKE_ATTR (0x2, 0x3), NORMAL_MEMORY_WRITE_THROUGH_NON_TRANSIENT },
+  { MAKE_ATTR (0x3, 0x0), NORMAL_MEMORY_WRITE_BACK_NON_TRANSIENT    },
+  { MAKE_ATTR (0x3, 0x1), NORMAL_MEMORY_WRITE_BACK_NON_TRANSIENT    },
+  { MAKE_ATTR (0x3, 0x2), NORMAL_MEMORY_WRITE_BACK_NON_TRANSIENT    },
+  { MAKE_ATTR (0x3, 0x3), NORMAL_MEMORY_WRITE_BACK_NON_TRANSIENT    }
+};
+
+MAIR_ATTR  MairAttr3_0_DeviceMemory[] = {
+  { MAKE_ATTR (0x0, 0x0), "Device-nGnRnE" },
+  { MAKE_ATTR (0x1, 0x0), "Device-nGnRE"  },
+  { MAKE_ATTR (0x2, 0x0), "Device-nGRE"   },
+  { MAKE_ATTR (0x3, 0x0), "Device-GRE"    },
+};
+
 //
 // ---------------------------------------------------------- Utility Functions
 //
@@ -330,14 +420,39 @@ GetPageTableLevels (
   return PagingLevels;
 }
 
+BOOLEAN
+ParseRegsForReg (
+  _In_ PCSTR     Regs,
+  _In_ PCSTR     RegName,
+  _Out_ ULONG64  *Value
+  )
+{
+  std::string  SearchStr = Format ("%s: ", RegName);
+  PCSTR        RegPos    = NULL;
+
+  if (Value == NULL) {
+    return FALSE;
+  }
+
+  RegPos = strstr (Regs, SearchStr.c_str ());
+  if (RegPos != NULL) {
+    RegPos += SearchStr.length ();
+    *Value  = strtoull (RegPos, NULL, 16);
+  }
+
+  return (RegPos != NULL);
+}
+
 ULONG64
 GetPageTableRoot (
-  _In_ ULONG64      UserRoot,
-  _Out_opt_ PULONG  Levels,
-  _Inout_ PULONG64  VirtualAddress = NULL
+  _In_ PDEBUG_CLIENT4  Client,
+  _In_ ULONG64         UserRoot,
+  _Out_opt_ PULONG     Levels,
+  _Inout_ PULONG64     VirtualAddress = NULL
   )
 {
   ULONG64  Root;
+  PCSTR    Regs;
 
   Root = 0;
 
@@ -348,15 +463,12 @@ GetPageTableRoot (
         break;
       case IMAGE_FILE_MACHINE_ARM64:
       {
-        dprintf ("Current ARM64 implementation requires passing in PageTableRoot, run ");
-        PrintDml (
-          Normal,
-          "<exec cmd=\"!uefiext.monitor arch regs\">"
-          "!monitor arch regs</exec> "
-          );
+        Regs = MonitorCommandWithOutput (Client, Format ("arch regs").c_str (), 0);
+        if (ParseRegsForReg (Regs, "ttbr0_el2", &Root)) {
+          break;
+        }
 
-        dprintf ("for TTBR0_EL2 value\n");
-
+        dprintf ("Failed to get PageTableRoot from ttbr0_el2 register\n");
         goto Exit;
       }
     }
@@ -402,7 +514,8 @@ ReadPte (
 VOID
 DisplayPhysicalAddress (
   __in ULONG64  PhysicalAddress,
-  __in ULONG64  VirtualAddress
+  __in ULONG64  VirtualAddress,
+  __in PCSTR    CacheType
   )
 {
   PCSTR  OneToOne = "";
@@ -413,10 +526,11 @@ DisplayPhysicalAddress (
 
   PrintDml (
     Normal,
-    " PA  @ #<exec cmd=\"!uefiext.pt %s\">%s</exec> %s",
+    " PA  @ #<exec cmd=\"!uefiext.pt %s\">%s</exec> %s - %s",
     FormatAddress (PhysicalAddress).c_str (),
     FormatAddress (PhysicalAddress).c_str (),
-    OneToOne
+    OneToOne,
+    CacheType
     );
 
   dprintf ("\n");
@@ -488,9 +602,10 @@ GetPleAddressX64 (
 
 VOID
 DumpPteX64 (
-  __in ULONG64  Address,
-  __in ULONG64  UserRoot,
-  __in ULONG64  Flags
+  __in PDEBUG_CLIENT4  Client,
+  __in ULONG64         Address,
+  __in ULONG64         UserRoot,
+  __in ULONG64         Flags
   )
 {
   ULONG             Levels;
@@ -507,12 +622,13 @@ DumpPteX64 (
   ULONG64           SelfMapIndex = 512;
   LONG              TestIndex    = 511;
   ULONG64           TableAddress;
+  PCSTR             CacheType;
 
   //
   // Get page table root and paging levels.
   //
 
-  PhysicalAddress = GetPageTableRoot (UserRoot, &Levels);
+  PhysicalAddress = GetPageTableRoot (Client, UserRoot, &Levels);
   if (PhysicalAddress == 0) {
     dprintf ("PageTableRoot is NULL\n");
     return;
@@ -764,7 +880,15 @@ PrintAddress:
   PhysicalAddress  = PageFrameIndex << X64_PAGE_SHIFT;
   PhysicalAddress += PageOffset;
 
-  DisplayPhysicalAddress (PhysicalAddress, Address);
+  // Get the cache type from MTRRs
+  CacheType = MonitorCommandWithOutput (Client, Format ("arch mtrr %X", Address).c_str (), 0);
+
+  // if CacheType has spaces in it, it means the monitor command didn't exist
+  if (strchr (CacheType, ' ') != NULL) {
+    CacheType = "Unknown";
+  }
+
+  DisplayPhysicalAddress (PhysicalAddress, Address, CacheType);
   return;
 }
 
@@ -822,11 +946,84 @@ GetPxeAddressARM64 (
   return (((((ULONG64)(Va) & VA_MASK_ARM64) >> PTI_SHIFT (3)) << PTE_SHIFT_ARM64) +  ARM64_PXE_BASE (SelfMapIndex));
 }
 
+std::string
+GetCacheTypeFromMair (
+  _In_ ULONG64  MairReg,
+  _In_ ULONG    CacheIndex
+  )
+{
+  PCSTR        InnerDescription;
+  PCSTR        OuterDescription;
+  PCSTR        Description;
+  UINT8        Attr7_4;
+  UINT8        Attr3_0;
+  UINT8        Mair;
+  std::string  MemoryType;
+
+  InnerDescription = UNPREDICTABLE_MEMORY;
+  OuterDescription = UNPREDICTABLE_MEMORY;
+  Description      = UNPREDICTABLE_MEMORY;
+
+  Mair = (UINT8)((MairReg >> (CacheIndex * 8)) & 0xFF);
+
+  Attr7_4 = (Mair & 0xF0) >> 4;
+  Attr3_0 = (Mair & 0x0F);
+
+  //
+  // If Attr[7:4] is 0, decode device memory types, othervice decode normal memory types.
+  //
+
+  if (Attr7_4 == 0) {
+    for (auto Index = 0UL; Index < RTL_NUMBER_OF (MairAttr3_0_DeviceMemory); Index += 1) {
+      if (Attr3_0 == MairAttr3_0_DeviceMemory[Index].Attribute) {
+        Description = MairAttr3_0_DeviceMemory[Index].Description;
+      }
+    }
+
+    MemoryType = Format ("%s", Description);
+  } else {
+    //
+    // Check for UNPREDICTABLE memory type.
+    //
+
+    if (Attr3_0 == 0) {
+      MemoryType = Format ("%s", Description);
+      goto Exit;
+    }
+
+    //
+    // Decode Outer Attributes
+    //
+
+    for (auto Index = 0UL; Index < RTL_NUMBER_OF (MairAttr7_4); Index += 1) {
+      if (Attr7_4 == MairAttr7_4[Index].Attribute) {
+        OuterDescription = MairAttr7_4[Index].Description;
+      }
+    }
+
+    //
+    // Decode Inner Attributes
+    //
+
+    for (auto Index = 0UL; Index < RTL_NUMBER_OF (MairAttr3_0); Index += 1) {
+      if (Attr3_0 == MairAttr3_0[Index].Attribute) {
+        InnerDescription = MairAttr3_0[Index].Description;
+      }
+    }
+
+    MemoryType = Format ("O:%s:I:%s", OuterDescription, InnerDescription);
+  }
+
+Exit:
+  return MemoryType;
+}
+
 VOID
 DumpPteArm64 (
-  __in ULONG64  Address,
-  __in ULONG64  UserRoot,
-  __in ULONG64  Flags
+  __in PDEBUG_CLIENT4  Client,
+  __in ULONG64         Address,
+  __in ULONG64         UserRoot,
+  __in ULONG64         Flags
   )
 {
   ULONG               PxeOffset;
@@ -843,6 +1040,11 @@ DumpPteArm64 (
   ULONG64             SelfMapIndex = 512;
   LONG                TestIndex    = 511;
   ULONG64             TableAddress;
+  PCSTR               Regs;
+  std::string         CacheTypeStr = "Unknown";
+  PCSTR               CacheType    = "Unknown";
+  ULONG               CacheIndex;
+  ULONG64             Mair;
 
   AddressStr = FormatAddress (Address);
 
@@ -850,7 +1052,7 @@ DumpPteArm64 (
   // Get page table root.
   //
 
-  PhysicalAddress = GetPageTableRoot (UserRoot, &PagingLevels, &Address);
+  PhysicalAddress = GetPageTableRoot (Client, UserRoot, &PagingLevels, &Address);
   PxeOffset       = GetPxeOffsetARM64 (Address);
   PpeOffset       = GetPpeOffsetARM64 (Address);
   PdeOffset       = GetPdeOffsetARM64 (Address);
@@ -918,6 +1120,7 @@ DumpPteArm64 (
         (IsLargePage (&Pte) != FALSE))
     {
       PageFrameIndex = Pte.PageFrameNumber + PdeOffset * 512 + PteOffset;
+      CacheIndex     = Pte.CacheType;
       dprintf ("HUGE PAGE ");
       dprintf ("\n");
       goto PrintAddress;
@@ -938,6 +1141,7 @@ DumpPteArm64 (
         (IsLargePage (&Pte) != FALSE))
     {
       PageFrameIndex = Pte.PageFrameNumber + PteOffset;
+      CacheIndex     = Pte.CacheType;
       dprintf ("LARGE PAGE ");
       dprintf ("\n");
       goto PrintAddress;
@@ -947,6 +1151,7 @@ DumpPteArm64 (
     ReadPte (PteAddress, &Pte);
     DisplayHardwarePte ("Pte", PteAddress, TRUE, Pte.PageFrameNumber << ARM64_PAGE_SHIFT, TableAddress);
     DisplayPte (&Pte, 1);
+    CacheIndex = Pte.CacheType;
     dprintf ("\n");
 
     if (Pte.Valid == 0) {
@@ -990,6 +1195,7 @@ DumpPteArm64 (
 
     if (IsLargePage (&Pte) != FALSE) {
       PageFrameIndex = Pte.PageFrameNumber + PdeOffset * 512 + PteOffset;
+      CacheIndex     = Pte.CacheType;
       dprintf ("HUGE PAGE ");
       dprintf ("\n");
       goto PrintAddress;
@@ -1013,6 +1219,7 @@ DumpPteArm64 (
 
     if (IsLargePage (&Pte) != FALSE) {
       PageFrameIndex = Pte.PageFrameNumber + PteOffset;
+      CacheIndex     = Pte.CacheType;
       dprintf ("LARGE PAGE ");
       dprintf ("\n");
       goto PrintAddress;
@@ -1028,6 +1235,7 @@ DumpPteArm64 (
     ReadPte (PhysicalAddress, &Pte);
     DisplayHardwarePte ("Pte", PhysicalAddress);
     DisplayPte (&Pte);
+    CacheIndex = Pte.CacheType;
     dprintf ("\n");
     if (Pte.Valid == 0) {
       dprintf ("PTE Invalid\n");
@@ -1041,7 +1249,15 @@ PrintAddress:
   PhysicalAddress  = PageFrameIndex << ARM64_PAGE_SHIFT;
   PhysicalAddress += PageOffset;
 
-  DisplayPhysicalAddress (PhysicalAddress, Address);
+  // Get the cache type from MAIR
+  Regs = MonitorCommandWithOutput (Client, Format ("arch regs").c_str (), 0);
+
+  if (ParseRegsForReg (Regs, "mair_el2", &Mair)) {
+    CacheTypeStr = GetCacheTypeFromMair (Mair, CacheIndex);
+    CacheType    = CacheTypeStr.c_str ();
+  }
+
+  DisplayPhysicalAddress (PhysicalAddress, Address, CacheType);
   return;
 }
 
@@ -1099,12 +1315,12 @@ pt (
   switch (g_TargetMachine) {
     case IMAGE_FILE_MACHINE_AMD64:
       Address = (ULONG64)(LONG64)Address;
-      DumpPteX64 (Address, UserRoot, Flags);
+      DumpPteX64 (Client, Address, UserRoot, Flags);
       break;
 
     case IMAGE_FILE_MACHINE_ARM64:
       Address = (ULONG64)(LONG64)Address;
-      DumpPteArm64 (Address, UserRoot, Flags);
+      DumpPteArm64 (Client, Address, UserRoot, Flags);
       break;
 
     default:
