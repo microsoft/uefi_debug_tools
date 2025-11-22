@@ -881,7 +881,7 @@ PrintAddress:
   PhysicalAddress += PageOffset;
 
   // Get the cache type from MTRRs
-  CacheType = MonitorCommandWithOutput (Client, Format ("arch mtrr %X", Address).c_str (), 0);
+  CacheType = MonitorCommandWithOutput (Client, Format ("arch mtrr %llX", Address).c_str (), 0);
 
   // if CacheType has spaces in it, it means the monitor command didn't exist
   if (strchr (CacheType, ' ') != NULL) {
