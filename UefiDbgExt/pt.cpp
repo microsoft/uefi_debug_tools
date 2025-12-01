@@ -344,10 +344,13 @@ DisplayHardwarePte (
       FormatAddress (Address).c_str ()
       );
 
+    // print the PA at the entry, not the start of the table
+    ULONG64 Offset = Address & 0xFFF;
+
     PrintDml (
       Normal,
       " PA %s ",
-      FormatAddress (TableAddress).c_str ()
+      FormatAddress (TableAddress + Offset).c_str ()
       );
   }
 }
