@@ -5,34 +5,55 @@
 #  SPDX-License-Identifier: BSD-2-Clause-Patent
 #
 
-import time
-import win32file
+import argparse
 import pywintypes
+import queue
+import serial
 import socket
 import threading
-import queue
-import argparse
-import serial
+import time
+import win32file
 
 parser = argparse.ArgumentParser()
-parser.add_argument("-l", "--logfile", type=str,
-                    help="File path to log traffic")
-parser.add_argument("-p", "--port", type=int, default=5555,
-                    help="The TCP port to listen for connections.")
-parser.add_argument("-n", "--pipe", type=str,
-                    help="The named pipe to connect to connect to.")
-parser.add_argument("-c", "--comport", type=str,
-                    help="The number of the COM device to connect to. E.G 'COM5'")
-parser.add_argument("-b", "--baudrate", type=int, default=115200,
-                    help="The baudrate of the serial port.")
-parser.add_argument("-s", "--show", action="store_true",
-                    help="Shows the traffic on the console.")
-parser.add_argument("-d", "--debug", action="store_true",
-                    help="Enables debug printing.")
+parser.add_argument(
+    "-l", "--logfile", type=str, help="File path to log traffic"
+)
+parser.add_argument(
+    "-p",
+    "--port",
+    type=int,
+    default=5555,
+    help="The TCP port to listen for connections.",
+)
+parser.add_argument(
+    "-n", "--pipe", type=str, help="The named pipe to connect to connect to."
+)
+parser.add_argument(
+    "-c",
+    "--comport",
+    type=str,
+    help="The number of the COM device to connect to. E.G 'COM5'",
+)
+parser.add_argument(
+    "-b",
+    "--baudrate",
+    type=int,
+    default=115200,
+    help="The baudrate of the serial port.",
+)
+parser.add_argument(
+    "-s",
+    "--show",
+    action="store_true",
+    help="Shows the traffic on the console.",
+)
+parser.add_argument(
+    "-d", "--debug", action="store_true", help="Enables debug printing."
+)
 args = parser.parse_args()
 
 # Constants
-BUFFER_SIZE = 4096*2
+BUFFER_SIZE = 4096 * 2
 SERIAL_CHUNK_SIZE = 32
 SERIAL_CHUNK_DELAY = 0.00025
 
@@ -42,10 +63,20 @@ in_queue = queue.Queue()
 logfile = None
 inout_last = None
 
-def socket_thread():
+
+def socket_thread() -> None:
+    """Thread function that handles TCP socket connections.
+
+    Creates a TCP server socket that listens for connections and manages
+    bidirectional data transfer between the socket and serial connection.
+    Data received from the socket is placed in in_queue, and data from
+    out_queue is sent to the socket.
+
+    The function runs indefinitely, accepting new connections as they arrive.
+    """
     # Set up the socket.
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind(('', args.port))
+    sock.bind(("", args.port))
     sock.listen()
 
     while True:
@@ -70,7 +101,7 @@ def socket_thread():
                 data = conn.recv(BUFFER_SIZE)
             except socket.timeout:
                 data = None
-            except Exception as e:
+            except Exception:
                 print("Socket disconnected.")
                 connected = False
                 continue
@@ -78,7 +109,19 @@ def socket_thread():
             if data is not None and len(data) != 0:
                 in_queue.put(data)
 
-def write_log(inout, data):
+
+def write_log(inout: bool, data: bytes) -> None:
+    """Write data to the log file with directional indicators.
+
+    Args:
+        inout: True if data is incoming (to serial port),
+               False if outgoing (from serial port)
+        data: The bytes to log
+
+    The function adds visual separators (< or >) to indicate data direction
+    and handles non-ASCII bytes by replacing them with placeholder
+    characters.
+    """
     global inout_last
     global logfile
 
@@ -97,7 +140,17 @@ def write_log(inout, data):
     string = data.decode("ascii", errors="replace")
     logfile.write(string)
 
-def listen_named_pipe():
+
+def listen_named_pipe() -> None:
+    """Listen to a Windows named pipe for serial data.
+
+    Continuously reads data from the named pipe specified in args.pipe
+    and forwards it to the TCP socket via out_queue. Data received from
+    the TCP socket (via in_queue) is written to the named pipe.
+
+    The function handles pipe connection errors and will retry connection
+    if the pipe is not yet available.
+    """
     print("Waiting for pipe...")
     quit = False
     while not quit:
@@ -109,20 +162,20 @@ def listen_named_pipe():
                 None,
                 win32file.OPEN_EXISTING,
                 0,
-                None
+                None,
             )
 
             print("Pipe connected.")
             while True:
                 if win32file.GetFileSize(handle) > 0:
                     hr, data = win32file.ReadFile(handle, BUFFER_SIZE)
-                    if (hr != 0):
+                    if hr != 0:
                         print(f"Error reading: {hr}")
                         continue
 
                     write_log(False, data)
                     if args.show:
-                        text = data.decode('ascii', errors='replace')
+                        text = data.decode("ascii", errors="replace")
                         print(f"{text}")
                     out_queue.put(data)
 
@@ -130,7 +183,7 @@ def listen_named_pipe():
                     data = in_queue.get()
                     write_log(True, data)
                     if args.show:
-                        text = data.decode('ascii', errors='replace')
+                        text = data.decode("ascii", errors="replace")
                         # prints with red color
                         print("\033[31m" + text + "\033[0m")
                     win32file.WriteFile(handle, data, None)
@@ -144,11 +197,28 @@ def listen_named_pipe():
                 print("broken pipe")
                 quit = True
 
-def listen_com_port():
+
+def listen_com_port() -> None:
+    """Listen to a COM serial port for data.
+
+    Opens the COM port specified in args.comport with the baudrate from
+    args.baudrate. Continuously reads data from the serial port and
+    forwards it to the TCP socket via out_queue. Data received from the
+    TCP socket (via in_queue) is written to the serial port in chunks
+    to avoid overwhelming the FIFO buffer.
+
+    The serial port is configured with 8 data bits, no parity, and
+    1 stop bit.
+    """
     print("Opening com port...")
-    serial_port = serial.Serial(args.comport, args.baudrate, parity=serial.PARITY_NONE,
-                                stopbits=serial.STOPBITS_ONE, bytesize=serial.EIGHTBITS,
-                                timeout=0.1)
+    serial_port = serial.Serial(
+        args.comport,
+        args.baudrate,
+        parity=serial.PARITY_NONE,
+        stopbits=serial.STOPBITS_ONE,
+        bytesize=serial.EIGHTBITS,
+        timeout=0.1,
+    )
 
     print(f"Opened {args.comport}.")
     while True:
@@ -156,7 +226,7 @@ def listen_com_port():
             data = serial_port.read(size=serial_port.in_waiting)
             write_log(False, data)
             if args.show:
-                text = data.decode('ascii', errors='replace')
+                text = data.decode("ascii", errors="replace")
                 print(f"{text}")
             out_queue.put(data)
 
@@ -164,25 +234,36 @@ def listen_com_port():
             data = in_queue.get()
             write_log(True, data)
             if args.show:
-                text = data.decode('ascii', errors='replace')
+                text = data.decode("ascii", errors="replace")
                 # prints with red color
                 print(f"\033[31m{text}\033[0m")
 
             for i in range(0, len(data), SERIAL_CHUNK_SIZE):
-                chunk = data[i:i+SERIAL_CHUNK_SIZE]
+                chunk = data[i:i + SERIAL_CHUNK_SIZE]
                 serial_port.write(chunk)
-                # a short delay to avoid overwhelming the FIFO. This should be solvable with RTS flow control, but
-                # that doesn't seem to work on Patina's 16550 implementation.
+                # a short delay to avoid overwhelming the FIFO. This
+                # should be solvable with RTS flow control, but that
+                # doesn't seem to work on Patina's 16550 implementation.
                 time.sleep(SERIAL_CHUNK_DELAY)
 
-def main():
+
+def main() -> None:
+    """Main entry point for the COM to TCP bridge server.
+
+    Validates command-line arguments, opens the log file if specified,
+    starts the TCP socket thread, and begins listening on either a
+    named pipe or COM port based on the provided arguments.
+
+    The function requires either --pipe or --comport to be specified.
+    Handles exceptions and ensures proper cleanup of the log file.
+    """
     if args.pipe is None and args.comport is None:
         print("Must specify a serial connection!")
         return
 
     global logfile
     if args.logfile is not None:
-        logfile = open(args.logfile, 'w')
+        logfile = open(args.logfile, "w")
         logfile.write(f"arguments: {args} \n\n")
 
     # Create the thread for the TCP port.
