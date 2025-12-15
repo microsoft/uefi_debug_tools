@@ -93,7 +93,8 @@ def write_log(inout, data):
             logfile.write("\n\n" + ">" * 52 + "\n")
         inout_last = inout
 
-    string = data.decode("ascii")
+    # Replace undecodable bytes so logging never throws on non-ASCII input
+    string = data.decode("ascii", errors="replace")
     logfile.write(string)
 
 def listen_named_pipe():
