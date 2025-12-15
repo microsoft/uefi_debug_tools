@@ -198,7 +198,8 @@ def main():
             listen_com_port()
         else:
             raise Exception("No serial port to connect to!")
-    except:
+    except Exception as e:
+        print(f"An error occurred: {e}")
         if logfile is not None:
             logfile.close()
 
