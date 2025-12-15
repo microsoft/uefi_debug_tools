@@ -6,6 +6,7 @@
 #
 
 import argparse
+import logging
 import pywintypes
 import queue
 import serial
@@ -13,10 +14,22 @@ import socket
 import threading
 import time
 import win32file
+from datetime import datetime
+from pathlib import Path
 
 parser = argparse.ArgumentParser()
 parser.add_argument(
-    "-l", "--logfile", type=str, help="File path to log traffic"
+    "-l",
+    "--log-path",
+    type=str,
+    help="File path or directory for serial logs. "
+    "If a file, logs to that file. "
+    "If a directory, creates timestamped log files.",
+)
+parser.add_argument(
+    "--script-log-file",
+    type=str,
+    help="File path to write script operational logs (info, errors, etc.).",
 )
 parser.add_argument(
     "-p",
@@ -45,10 +58,15 @@ parser.add_argument(
     "-s",
     "--show",
     action="store_true",
-    help="Shows the traffic on the console.",
+    help="Shows all serial traffic (including debugger) on the console.",
 )
 parser.add_argument(
     "-d", "--debug", action="store_true", help="Enables debug printing."
+)
+parser.add_argument(
+    "--show-direction",
+    action="store_true",
+    help="Prefix log entries with direction indicator (IN/OUT).",
 )
 args = parser.parse_args()
 
@@ -60,8 +78,14 @@ SERIAL_CHUNK_DELAY = 0.00025
 # Global queues used between threads.
 out_queue = queue.Queue()
 in_queue = queue.Queue()
-logfile = None
-inout_last = None
+
+# Loggers
+script_logger = logging.getLogger("script")
+serial_logger = logging.getLogger("serial")
+
+# Buffers for incomplete lines
+_line_buffer_in = ""
+_line_buffer_out = ""
 
 
 def socket_thread() -> None:
@@ -80,9 +104,9 @@ def socket_thread() -> None:
     sock.listen()
 
     while True:
-        print("Waiting for socket...")
+        script_logger.info("Waiting for socket...")
         conn, addr = sock.accept()
-        print(f"Socket Connected - {addr}")
+        script_logger.info(f"Socket Connected - {addr}")
 
         # clear the out queue before starting a connection
         while not out_queue.empty():
@@ -102,7 +126,7 @@ def socket_thread() -> None:
             except socket.timeout:
                 data = None
             except Exception:
-                print("Socket disconnected.")
+                script_logger.info("Socket disconnected.")
                 connected = False
                 continue
 
@@ -110,35 +134,42 @@ def socket_thread() -> None:
                 in_queue.put(data)
 
 
-def write_log(inout: bool, data: bytes) -> None:
-    """Write data to the log file with directional indicators.
+def log_serial_data(inout: bool, data: bytes) -> None:
+    """Log serial data without modification.
 
     Args:
         inout: True if data is incoming (to serial port),
                False if outgoing (from serial port)
         data: The bytes to log
-
-    The function adds visual separators (< or >) to indicate data direction
-    and handles non-ASCII bytes by replacing them with placeholder
-    characters.
     """
-    global inout_last
-    global logfile
+    global _line_buffer_in, _line_buffer_out
 
-    if logfile is None:
-        return
+    text = data.decode("ascii", errors="replace")
 
-    if inout != inout_last:
-        logfile.flush()
-        if inout:
-            logfile.write("\n\n" + "<" * 52 + "\n")
+    if inout:
+        buffer = _line_buffer_in
+    else:
+        buffer = _line_buffer_out
+
+    buffer += text
+    lines = buffer.split('\n')
+    buffer = lines[-1]
+
+    # Log all complete lines
+    for line in lines[:-1]:
+        # Remove trailing carriage return if present to prevent double spacing
+        # in the log file.
+        line = line.rstrip('\r')
+        if args.show_direction:
+            direction = "IN " if inout else "OUT"
+            serial_logger.info(f"[{direction}] {line}")
         else:
-            logfile.write("\n\n" + ">" * 52 + "\n")
-        inout_last = inout
+            serial_logger.info(line)
 
-    # Replace undecodable bytes so logging never throws on non-ASCII input
-    string = data.decode("ascii", errors="replace")
-    logfile.write(string)
+    if inout:
+        _line_buffer_in = buffer
+    else:
+        _line_buffer_out = buffer
 
 
 def listen_named_pipe() -> None:
@@ -151,7 +182,7 @@ def listen_named_pipe() -> None:
     The function handles pipe connection errors and will retry connection
     if the pipe is not yet available.
     """
-    print("Waiting for pipe...")
+    script_logger.info("Waiting for pipe...")
     quit = False
     while not quit:
         try:
@@ -165,36 +196,29 @@ def listen_named_pipe() -> None:
                 None,
             )
 
-            print("Pipe connected.")
+            script_logger.info("Pipe connected.")
             while True:
                 if win32file.GetFileSize(handle) > 0:
                     hr, data = win32file.ReadFile(handle, BUFFER_SIZE)
                     if hr != 0:
-                        print(f"Error reading: {hr}")
+                        script_logger.error(f"Error reading: {hr}")
                         continue
 
-                    write_log(False, data)
-                    if args.show:
-                        text = data.decode("ascii", errors="replace")
-                        print(f"{text}")
+                    log_serial_data(False, data)
                     out_queue.put(data)
 
                 while not in_queue.empty():
                     data = in_queue.get()
-                    write_log(True, data)
-                    if args.show:
-                        text = data.decode("ascii", errors="replace")
-                        # prints with red color
-                        print("\033[31m" + text + "\033[0m")
+                    log_serial_data(True, data)
                     win32file.WriteFile(handle, data, None)
 
         except pywintypes.error as e:
             if e.args[0] == 2:
                 if args.debug:
-                    print("No pipe yet, waiting...")
+                    script_logger.debug("No pipe yet, waiting...")
                 time.sleep(1)
             elif e.args[0] == 109:
-                print("broken pipe")
+                script_logger.error("broken pipe")
                 quit = True
 
 
@@ -210,7 +234,7 @@ def listen_com_port() -> None:
     The serial port is configured with 8 data bits, no parity, and
     1 stop bit.
     """
-    print("Opening com port...")
+    script_logger.info("Opening com port...")
     serial_port = serial.Serial(
         args.comport,
         args.baudrate,
@@ -220,23 +244,16 @@ def listen_com_port() -> None:
         timeout=0.1,
     )
 
-    print(f"Opened {args.comport}.")
+    script_logger.info(f"Opened {args.comport}.")
     while True:
         if serial_port.in_waiting > 0:
             data = serial_port.read(size=serial_port.in_waiting)
-            write_log(False, data)
-            if args.show:
-                text = data.decode("ascii", errors="replace")
-                print(f"{text}")
+            log_serial_data(False, data)
             out_queue.put(data)
 
         while not in_queue.empty():
             data = in_queue.get()
-            write_log(True, data)
-            if args.show:
-                text = data.decode("ascii", errors="replace")
-                # prints with red color
-                print(f"\033[31m{text}\033[0m")
+            log_serial_data(True, data)
 
             for i in range(0, len(data), SERIAL_CHUNK_SIZE):
                 chunk = data[i:i + SERIAL_CHUNK_SIZE]
@@ -247,24 +264,92 @@ def listen_com_port() -> None:
                 time.sleep(SERIAL_CHUNK_DELAY)
 
 
+def setup_logging() -> None:
+    """Configure logging for script and serial loggers.
+
+    Sets up handlers and formatters based on command-line arguments:
+    - Script logger: operational logs (info, errors, etc.)
+    - Serial logger: all serial port data
+
+    Log files are written to:
+    - Script log: --script-log-file if specified
+    - Serial log: --log-path (filename or directory with timestamped file)
+    """
+    # Console handler for script logger (always enabled)
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.DEBUG if args.debug else logging.INFO)
+    console_formatter = logging.Formatter('%(message)s')
+    console_handler.setFormatter(console_formatter)
+
+    script_logger.setLevel(logging.DEBUG if args.debug else logging.INFO)
+    script_logger.addHandler(console_handler)
+
+    # Add file handler for script logging if specified
+    if args.script_log_file:
+        script_file_handler = logging.FileHandler(
+            args.script_log_file, mode='w'
+        )
+        script_file_handler.setLevel(
+            logging.DEBUG if args.debug else logging.INFO
+        )
+        script_file_formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s',
+            datefmt='%Y-%m-%d %H:%M:%S'
+        )
+        script_file_handler.setFormatter(script_file_formatter)
+        script_logger.addHandler(script_file_handler)
+
+    serial_logger.setLevel(logging.INFO)
+
+    # Create file handler if log path is specified
+    if args.log_path:
+        log_path = Path(args.log_path)
+
+        # Consider the path a file if it has a suffix
+        if log_path.suffix:
+            serial_file = log_path
+            log_dir = log_path.parent
+            if log_dir and not log_dir.exists():
+                log_dir.mkdir(parents=True, exist_ok=True)
+        else:
+            log_dir = log_path
+            log_dir.mkdir(parents=True, exist_ok=True)
+
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            serial_file = log_dir / f"log_{timestamp}.log"
+
+        serial_file_handler = logging.FileHandler(serial_file, mode='w')
+        serial_file_handler.setLevel(logging.INFO)
+        serial_formatter = logging.Formatter('%(message)s')
+        serial_file_handler.setFormatter(serial_formatter)
+        serial_logger.addHandler(serial_file_handler)
+
+        script_logger.info(f"Logging serial data to: {serial_file}")
+
+    if args.show:
+        serial_console = logging.StreamHandler()
+        serial_console.setLevel(logging.INFO)
+        serial_console.setFormatter(console_formatter)
+        serial_logger.addHandler(serial_console)
+
+
 def main() -> None:
     """Main entry point for the COM to TCP bridge server.
 
-    Validates command-line arguments, opens the log file if specified,
+    Validates command-line arguments, configures logging,
     starts the TCP socket thread, and begins listening on either a
     named pipe or COM port based on the provided arguments.
 
     The function requires either --pipe or --comport to be specified.
-    Handles exceptions and ensures proper cleanup of the log file.
     """
     if args.pipe is None and args.comport is None:
         print("Must specify a serial connection!")
         return
 
-    global logfile
-    if args.logfile is not None:
-        logfile = open(args.logfile, "w")
-        logfile.write(f"arguments: {args} \n\n")
+    setup_logging()
+
+    script_logger.info("COM to TCP Bridge Server")
+    script_logger.info(f"Arguments: {args}")
 
     # Create the thread for the TCP port.
     port_thread = threading.Thread(target=socket_thread)
@@ -278,10 +363,10 @@ def main() -> None:
             listen_com_port()
         else:
             raise Exception("No serial port to connect to!")
+    except KeyboardInterrupt:
+        script_logger.info("Exiting due to a keyboard interrupt.")
     except Exception as e:
-        print(f"An error occurred: {e}")
-        if logfile is not None:
-            logfile.close()
+        script_logger.error(f"An error occurred: {e}")
 
 
 main()
