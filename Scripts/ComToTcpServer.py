@@ -6,8 +6,6 @@
 #
 
 import time
-import sys
-import win32pipe
 import win32file
 import pywintypes
 import socket
@@ -90,9 +88,9 @@ def write_log(inout, data):
     if inout != inout_last:
         logfile.flush()
         if inout:
-            logfile.write("\n\n<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<\n")
+            logfile.write("\n\n" + "<" * 52 + "\n")
         else:
-            logfile.write("\n\n>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n")
+            logfile.write("\n\n" + ">" * 52 + "\n")
         inout_last = inout
 
     string = data.decode("ascii")
@@ -167,7 +165,7 @@ def listen_com_port():
             if args.show:
                 text = data.decode('ascii', errors='replace')
                 # prints with red color
-                print("\033[31m" + text + "\033[0m")
+                print(f"\033[31m{text}\033[0m")
 
             for i in range(0, len(data), SERIAL_CHUNK_SIZE):
                 chunk = data[i:i+SERIAL_CHUNK_SIZE]
