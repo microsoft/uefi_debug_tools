@@ -42,18 +42,18 @@ BOOLEAN LoadEfiSymbols (ULONG64 BaseAddress, PCSTR FilePath) {
     }
 
     // Extract just the filename from the PDB path
-    const char* pdbFileName = strrchr(FilePath, '\\');
-    if (pdbFileName == nullptr)
+    const char* fileName = strrchr(FilePath, '\\');
+    if (fileName == nullptr)
     {
-        pdbFileName = strrchr(FilePath, '/');
+        fileName = strrchr(FilePath, '/');
     }
-    if (pdbFileName != nullptr)
+    if (fileName != nullptr)
     {
-        pdbFileName++; // Skip the slash
+        fileName++; // Skip the slash
     }
     else
     {
-        pdbFileName = FilePath; // No path separator, use the whole string
+        fileName = FilePath; // No path separator, use the whole string
     }
 
     // Parse the symbol path and search for the PDB file
@@ -80,7 +80,7 @@ BOOLEAN LoadEfiSymbols (ULONG64 BaseAddress, PCSTR FilePath) {
         }
 
         // Build full path to potential PDB file
-        if (PathCombineA(fullPath, token, pdbFileName))
+        if (PathCombineA(fullPath, token, fileName))
         {
             // Check if file exists
             DWORD attribs = GetFileAttributesA(fullPath);
