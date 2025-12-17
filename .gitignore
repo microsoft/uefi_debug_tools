@@ -11,3 +11,11 @@ UefiDbgExt/uefiext.vcxproj.user
 patina-ext/dist/
 patina-ext/node_modules/
 patina-ext/package-lock.json
+
+# EFI Composition Build
+EfiSymComposition/EfiSymCo*/
+EfiSymComposition/x64/
+EfiSymComposition/ARM64/
+EfiSymComposition/packages/
+EfiSymComposition/.vs/
+EfiSymComposition/EfiSymComposition.vcxproj.user
