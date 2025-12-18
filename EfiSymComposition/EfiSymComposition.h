@@ -52,6 +52,8 @@ class EFIEfiSymCompositionProvider;
 } // TargetComposition
 } // Debugger
 
+BOOLEAN LoadEfiSymbols (ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet);
+
 #include "EfiSymCompositionService.h"
 
 #endif // __EFISYMCOMPOSITION_H__

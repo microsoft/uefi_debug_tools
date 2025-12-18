@@ -4,7 +4,7 @@
 
 #pragma comment(lib, "shlwapi.lib")
 
-BOOLEAN LoadEfiSymbols (ULONG64 BaseAddress, PCSTR FilePath) {
+BOOLEAN LoadEfiSymbols (ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet) {
     if (FilePath == nullptr || FilePath[0] == '\0' || BaseAddress == 0)
     {
         return FALSE;
@@ -53,7 +53,23 @@ BOOLEAN LoadEfiSymbols (ULONG64 BaseAddress, PCSTR FilePath) {
     }
     else
     {
-        fileName = FilePath; // No path separator, use the whole string
+        fileName = FilePath;
+    }
+
+    // If this is a .dll file, convert to a .debug filename. The symbol path is unlikely to include the .dll.
+    char fixedName[MAX_PATH];
+    if (strstr(fileName, ".dll") != nullptr)
+    {
+        strcpy_s(fixedName, sizeof(fixedName), fileName);
+        char* ext = strrchr(fixedName, '.');
+        if (ext != nullptr)
+        {
+            strcpy_s(ext, sizeof(fixedName) - (ext - fixedName), ".debug");
+        }
+        fileName = fixedName;
+    } else {
+        strcpy_s(fixedName, sizeof(fixedName), fileName);
+        fileName = fixedName;
     }
 
     // Parse the symbol path and search for the PDB file
@@ -88,6 +104,8 @@ BOOLEAN LoadEfiSymbols (ULONG64 BaseAddress, PCSTR FilePath) {
             {
                 // Found the PDB file!
                 found = TRUE;
+
+
 
                 // TODO: Actually load the symbols using this path
                 // For now, we've validated the file exists in the symbol path

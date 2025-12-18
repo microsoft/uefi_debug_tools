@@ -135,14 +135,6 @@ public:
             return E_UNHANDLED_REQUEST_TYPE;
         }
 
-        // Get the containing process key
-        ULONG64 processKey = 0;
-        hr = pImage->GetContainingProcessKey(&processKey);
-        if (FAILED(hr))
-        {
-            return E_UNHANDLED_REQUEST_TYPE;
-        }
-
         // Query for memory access service
         Microsoft::WRL::ComPtr<ISvcMemoryAccess> spMemory;
         hr = m_spServiceManager->QueryService(DEBUG_SERVICE_VIRTUAL_MEMORY, IID_PPV_ARGS(&spMemory));
@@ -151,24 +143,16 @@ public:
             return E_UNHANDLED_REQUEST_TYPE;
         }
 
-        // Get address context - query for process enumeration service
-        Microsoft::WRL::ComPtr<ISvcProcessEnumeration> spProcessEnum;
-        hr = m_spServiceManager->QueryService(DEBUG_SERVICE_PROCESS_ENUMERATOR, IID_PPV_ARGS(&spProcessEnum));
+        // Get kernel/machine address context (bare metal UEFI debugging has no process context)
+        Microsoft::WRL::ComPtr<ISvcMachineDebug> spMachineDebug;
+        hr = m_spServiceManager->QueryService(DEBUG_SERVICE_MACHINE, IID_PPV_ARGS(&spMachineDebug));
         if (FAILED(hr))
         {
             return E_UNHANDLED_REQUEST_TYPE;
         }
 
-        Microsoft::WRL::ComPtr<ISvcProcess> spProcess;
-        hr = spProcessEnum->FindProcess(processKey, &spProcess);
-        if (FAILED(hr))
-        {
-            return E_UNHANDLED_REQUEST_TYPE;
-        }
-
-        // Get address context from process
         Microsoft::WRL::ComPtr<ISvcAddressContext> spAddrCtx;
-        hr = spProcess.As(&spAddrCtx);
+        hr = spMachineDebug->GetDefaultAddressContext(&spAddrCtx);
         if (FAILED(hr))
         {
             return E_UNHANDLED_REQUEST_TYPE;
@@ -184,7 +168,7 @@ public:
         }
 
         // Validate DOS signature
-        if (dosHeader.e_magic != IMAGE_DOS_SIGNATURE) // 'MZ'
+        if (dosHeader.e_magic != IMAGE_DOS_SIGNATURE)
         {
             return E_UNHANDLED_REQUEST_TYPE;
         }
@@ -199,23 +183,22 @@ public:
         }
 
         // Validate PE signature
-        if (ntHeaders.Signature != IMAGE_NT_SIGNATURE) // 'PE\0\0'
+        if (ntHeaders.Signature != IMAGE_NT_SIGNATURE)
         {
             return E_UNHANDLED_REQUEST_TYPE;
         }
 
-        // Check for EFI subsystem types
+        // Check for EFI subsystem types, otherwise not an EFI image
         WORD subsystem = ntHeaders.OptionalHeader.Subsystem;
         if (subsystem != IMAGE_SUBSYSTEM_EFI_APPLICATION &&
             subsystem != IMAGE_SUBSYSTEM_EFI_BOOT_SERVICE_DRIVER &&
             subsystem != IMAGE_SUBSYSTEM_EFI_RUNTIME_DRIVER &&
             subsystem != IMAGE_SUBSYSTEM_EFI_ROM)
         {
-            // Not an EFI image
             return E_UNHANDLED_REQUEST_TYPE;
         }
 
-        // This is an EFI image! Now get the debug directory for PDB path
+        // This is an EFI image! Now get the debug directory for symbol path
         DWORD debugDirRva = ntHeaders.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].VirtualAddress;
         DWORD debugDirSize = ntHeaders.OptionalHeader.DataDirectory[IMAGE_DIRECTORY_ENTRY_DEBUG].Size;
 
@@ -237,12 +220,12 @@ public:
                         char pdbPath[MAX_PATH] = {};
                         ULONG64 pdbPathOffset = 0;
 
-                        if (cvSignature == 0x53445352) // 'RSDS' - newer PDB format
+                        if (cvSignature == 0x53445352) // 'RSDS'
                         {
                             // RSDS format: Signature(4) + GUID(16) + Age(4) + PDB path string
                             pdbPathOffset = baseAddress + debugDir.AddressOfRawData + sizeof(DWORD) + 16 + sizeof(DWORD);
                         }
-                        else if (cvSignature == 0x3031424E) // 'NB10' - older PDB format
+                        else if (cvSignature == 0x3031424E) // 'NB10'
                         {
                             // NB10 format: Signature(4) + Offset(4) + Timestamp(4) + Age(4) + PDB path string
                             pdbPathOffset = baseAddress + debugDir.AddressOfRawData + sizeof(DWORD) + sizeof(DWORD) + sizeof(DWORD) + sizeof(DWORD);
@@ -255,10 +238,13 @@ public:
                             {
                                 pdbPath[sizeof(pdbPath) - 1] = '\0';
 
-                                // Check if this is a ELF pdb path.
+                                // Check if this is a ELF file path.
                                 if (strstr (pdbPath, ".dll") != NULL || strstr(pdbPath, ".debug") != NULL) {
                                     // Find and load the symbols file.
-
+                                    if (LoadEfiSymbols (baseAddress, pdbPath, ppSymbolSet)) {
+                                        // Return a success code to indicate we handled the request.
+                                        return S_OK;
+                                    }
                                 }
                             }
                         }
@@ -267,7 +253,6 @@ public:
             }
         }
 
-        // Return E_UNHANDLED_REQUEST_TYPE to pass the request to the next provider
         return E_UNHANDLED_REQUEST_TYPE;
     }
 
