@@ -238,11 +238,14 @@ public:
                             {
                                 pdbPath[sizeof(pdbPath) - 1] = '\0';
 
-                                // Check if this is a ELF file path.
-                                if (strstr (pdbPath, ".dll") != NULL || strstr(pdbPath, ".debug") != NULL) {
-                                    // Find and load the symbols file.
-                                    if (LoadEfiSymbols (baseAddress, pdbPath, ppSymbolSet)) {
-                                        // Return a success code to indicate we handled the request.
+                                // Check if this is a ELF file path
+                                if (strstr(pdbPath, ".dll") != NULL || strstr(pdbPath, ".debug") != NULL)
+                                {
+                                    // This is an EFI image with ELF debug info
+                                    // Call LoadEfiSymbols to handle file search and delegate to ElfBinComposition
+                                    if (LoadEfiSymbols(baseAddress, pdbPath, ppSymbolSet, pImage))
+                                    {
+                                        // Successfully loaded symbols
                                         return S_OK;
                                     }
                                 }

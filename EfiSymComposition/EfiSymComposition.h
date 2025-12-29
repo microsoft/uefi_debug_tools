@@ -29,7 +29,9 @@
 
 #define KDEXT_64BIT
 #include <dbgeng.h>
-#include <DbgServices.h>
+#include <dbgmodel.h>
+// #include <DbgServices.h>
+#include "DbgServicesUpdated.h" // TEMP until DbgServices.h is updated
 #include <DbgServicesBridgeClient.h>
 
 using namespace Microsoft::WRL;
@@ -52,7 +54,8 @@ class EFIEfiSymCompositionProvider;
 } // TargetComposition
 } // Debugger
 
-BOOLEAN LoadEfiSymbols (ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet);
+// Helper function to find symbol file and call ElfBinComposition's OpenSymbols
+BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcModule *pImage);
 
 #include "EfiSymCompositionService.h"
 
