@@ -34,6 +34,9 @@
 #include "DbgServicesUpdated.h" // TEMP until DbgServices.h is updated
 #include <DbgServicesBridgeClient.h>
 
+#include <initguid.h>
+DEFINE_GUID(DEBUG_COMPONENT_ELFIMAGE_SYMBOLPROVIDER, 0x21381683, 0x766b, 0x4eed, 0xb8, 0xee, 0x5a, 0x21, 0x5b, 0xd8, 0x51, 0xcd);
+
 using namespace Microsoft::WRL;
 
 #define IfFailedReturn(EXPR) do { HRESULT __hr = (EXPR); if (FAILED(__hr)) { return __hr; } } while (false, false)
@@ -55,7 +58,7 @@ class EFIEfiSymCompositionProvider;
 } // Debugger
 
 // Helper function to find symbol file and call ElfBinComposition's OpenSymbols
-BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcModule *pImage);
+BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcSymbolProvider2 *spSymbolProvider2);
 
 #include "EfiSymCompositionService.h"
 

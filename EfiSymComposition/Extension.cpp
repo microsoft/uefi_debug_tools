@@ -95,6 +95,21 @@ HRESULT CALLBACK DebugExtensionInitialize(PULONG /*pVersion*/, PULONG /*pFlags*/
         return hr;
     }
 
+    //
+    // Create the elf service and stash the pointer for later use.
+    //
+    ComPtr<IDebugTargetComposition> spCompositionManager;
+    IfFailedReturn(spCompositionBridge->GetCompositionManager(&spCompositionManager));
+
+    ComPtr<IDebugServiceLayer> spElfProvider;
+    IfFailedReturn(spCompositionManager->CreateComponent(DEBUG_COMPONENT_ELFIMAGE_SYMBOLPROVIDER,
+                                                         &spElfProvider));
+
+    // convert to the symbol provider and store globally
+    ComPtr<ISvcSymbolProvider2> spElfSymbolProvider;
+    IfFailedReturn(spElfProvider.As(&spElfSymbolProvider));
+    spProvider->SetSymbolProvider(spElfSymbolProvider.Detach());
+
     return S_OK;
 }
 

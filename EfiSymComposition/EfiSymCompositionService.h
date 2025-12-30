@@ -243,7 +243,7 @@ public:
                                 {
                                     // This is an EFI image with ELF debug info
                                     // Call LoadEfiSymbols to handle file search and delegate to ElfBinComposition
-                                    if (LoadEfiSymbols(baseAddress, pdbPath, ppSymbolSet, pImage))
+                                    if (LoadEfiSymbols(baseAddress, pdbPath, ppSymbolSet, m_spSymbolProvider.Get()))
                                     {
                                         // Successfully loaded symbols
                                         return S_OK;
@@ -272,10 +272,17 @@ public:
         return S_OK;
     }
 
+    VOID SetSymbolProvider(_In_ ISvcSymbolProvider2 *pProvider)
+    {
+        m_spSymbolProvider = pProvider;
+    }
+
 private:
 
     // Service manager for querying other services
     Microsoft::WRL::ComPtr<IDebugServiceManager> m_spServiceManager;
+    Microsoft::WRL::ComPtr<ISvcSymbolProvider2> m_spSymbolProvider;
+
 };
 
 } // EfiSymComposition

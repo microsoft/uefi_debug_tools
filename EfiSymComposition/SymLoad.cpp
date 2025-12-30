@@ -5,9 +5,10 @@
 #pragma comment(lib, "shlwapi.lib")
 
 // Simple file wrapper that implements ISvcDebugSourceFile
-class DebugSourceFile : public Microsoft::WRL::RuntimeClass<
+class DebugSourceFile final : public Microsoft::WRL::RuntimeClass<
     Microsoft::WRL::RuntimeClassFlags<Microsoft::WRL::RuntimeClassType::ClassicCom>,
-    ISvcDebugSourceFile>
+    ISvcDebugSourceFile,
+    ISvcDebugSourceFileMapping>
 {
 public:
     HRESULT RuntimeClassInitialize(_In_ PCSTR filePath)
@@ -23,6 +24,14 @@ public:
 
     ~DebugSourceFile()
     {
+        if (m_pMappedView != nullptr)
+        {
+            UnmapViewOfFile(m_pMappedView);
+        }
+        if (m_hMapping != nullptr)
+        {
+            CloseHandle(m_hMapping);
+        }
         if (m_hFile != INVALID_HANDLE_VALUE)
         {
             CloseHandle(m_hFile);
@@ -65,59 +74,127 @@ public:
         return E_NOTIMPL;
     }
 
+    // ISvcDebugSourceFileMapping methods
+    IFACEMETHOD(MapFile)(_Out_ PVOID *mapAddress, _Out_ PULONG64 mapSize) override
+    {
+        *mapAddress = nullptr;
+        *mapSize = 0;
+
+        if (m_hFile == INVALID_HANDLE_VALUE)
+        {
+            return E_HANDLE;
+        }
+
+        // If already mapped, return the existing mapping
+        if (m_pMappedView != nullptr)
+        {
+            *mapAddress = m_pMappedView;
+            *mapSize = m_mappedSize;
+            return S_OK;
+        }
+
+        // Get file size
+        LARGE_INTEGER fileSize;
+        if (!GetFileSizeEx(m_hFile, &fileSize))
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+
+        if (fileSize.QuadPart == 0)
+        {
+            // Empty file - return success with null mapping
+            return S_OK;
+        }
+
+        // Create file mapping object
+        m_hMapping = CreateFileMappingA(m_hFile, nullptr, PAGE_READONLY, 0, 0, nullptr);
+        if (m_hMapping == nullptr)
+        {
+            return HRESULT_FROM_WIN32(GetLastError());
+        }
+
+        // Map view of the entire file
+        m_pMappedView = MapViewOfFile(m_hMapping, FILE_MAP_READ, 0, 0, 0);
+        if (m_pMappedView == nullptr)
+        {
+            HRESULT hr = HRESULT_FROM_WIN32(GetLastError());
+            CloseHandle(m_hMapping);
+            m_hMapping = nullptr;
+            return hr;
+        }
+
+        m_mappedSize = fileSize.QuadPart;
+        *mapAddress = m_pMappedView;
+        *mapSize = m_mappedSize;
+        return S_OK;
+    }
+
+    IFACEMETHOD(GetHandle)(_Out_ HANDLE *pHandle) override
+    {
+        *pHandle = m_hFile;
+        return S_OK;
+    }
+
 private:
     HANDLE m_hFile = INVALID_HANDLE_VALUE;
+    HANDLE m_hMapping = nullptr;
+    PVOID m_pMappedView = nullptr;
+    ULONG64 m_mappedSize = 0;
 };
 
-BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcModule *pImage)
+// Helper function to log to both OutputDebugString and a file
+static void LogMessage(const char* message)
 {
-    if (FilePath == nullptr || FilePath[0] == '\0' || BaseAddress == 0 || pImage == nullptr)
+    OutputDebugStringA(message);
+
+    // Also write to a log file in the temp directory
+    char tempPath[MAX_PATH];
+    if (GetTempPathA(MAX_PATH, tempPath) > 0)
+    {
+        char logPath[MAX_PATH];
+        sprintf_s(logPath, "%sEfiSymComposition.log", tempPath);
+
+        FILE* logFile = nullptr;
+        if (fopen_s(&logFile, logPath, "a") == 0 && logFile != nullptr)
+        {
+            // put a time stamp first
+            SYSTEMTIME st;
+            GetLocalTime(&st);
+            fprintf(logFile, "[%04d-%02d-%02d %02d:%02d:%02d] ",
+                    st.wYear, st.wMonth, st.wDay,
+                    st.wHour, st.wMinute, st.wSecond);
+
+            fputs(message, logFile);
+            fclose(logFile);
+        }
+    }
+}
+
+BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcSymbolProvider2 *spSymbolProvider2)
+{
+    if (FilePath == nullptr || FilePath[0] == '\0' || BaseAddress == 0 || spSymbolProvider2 == nullptr)
     {
         return FALSE;
     }
 
-    // Get the debug client for logging
-    ComPtr<IDebugClient> spDebugClient;
-    HRESULT hr = DebugCreate(__uuidof(IDebugClient), &spDebugClient);
-    if (FAILED(hr))
+    HRESULT hr = S_OK;
+    char logBuf[512];
+
+    sprintf_s(logBuf, "EfiSymComposition: Loading EFI symbols for base %I64x, PDB path: %s\n", BaseAddress, FilePath);
+    LogMessage(logBuf);
+
+    // Get symbol path from environment variable _NT_SYMBOL_PATH
+    char symbolPathBuf[4096] = {0};
+    DWORD result = GetEnvironmentVariableA("_NT_SYMBOL_PATH", symbolPathBuf, sizeof(symbolPathBuf));
+    if (result == 0 || result >= sizeof(symbolPathBuf))
     {
-        return FALSE;
+        LogMessage("EfiSymComposition: Failed to get _NT_SYMBOL_PATH environment variable\n");
+        // fall back to default of "D:\\wslsym" TEMP
+        strcpy_s(symbolPathBuf, sizeof(symbolPathBuf), "D:\\wslsym");
     }
 
-    ComPtr<IDebugControl> spControl;
-    hr = spDebugClient.As(&spControl);
-    if (FAILED(hr))
-    {
-        return FALSE;
-    }
-
-    spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Loading EFI symbols for base %I64x, PDB path: %s\n", BaseAddress, FilePath);
-
-    // Get symbols interface for symbol path
-    ComPtr<IDebugSymbols3> spSymbols;
-    hr = spDebugClient.As(&spSymbols);
-    if (FAILED(hr))
-    {
-        return FALSE;
-    }
-
-    // Get the symbol path
-    ULONG pathSize = 0;
-    hr = spSymbols->GetSymbolPath(nullptr, 0, &pathSize);
-    if (FAILED(hr))
-    {
-        return FALSE;
-    }
-
-    std::vector<char> symbolPath(pathSize);
-    hr = spSymbols->GetSymbolPath(symbolPath.data(), pathSize, nullptr);
-    if (FAILED(hr))
-    {
-        spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Failed to get symbol path (hr=0x%08x)\n", hr);
-        return FALSE;
-    }
-
-    spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Symbol path: %s\n", symbolPath.data());
+    sprintf_s(logBuf, "EfiSymComposition: Symbol path: %s\n", symbolPathBuf);
+    LogMessage(logBuf);
 
     // Extract just the filename from the PDB path
     const char* fileName = strrchr(FilePath, '\\');
@@ -145,18 +222,20 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSym
             strcpy_s(ext, sizeof(fixedName) - (ext - fixedName), ".debug");
         }
         fileName = fixedName;
-        spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Converted .dll to .debug: %s\n", fileName);
+        sprintf_s(logBuf, "EfiSymComposition: Converted .dll to .debug: %s\n", fileName);
+        LogMessage(logBuf);
     } else {
         strcpy_s(fixedName, sizeof(fixedName), fileName);
         fileName = fixedName;
     }
 
-    spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Searching for symbol file: %s\n", fileName);
+    sprintf_s(logBuf, "EfiSymComposition: Searching for symbol file: %s\n", fileName);
+    LogMessage(logBuf);
 
     // Parse the symbol path and search for the PDB file
     // Symbol path is semicolon-delimited
     char* pathContext = nullptr;
-    char* pathCopy = _strdup(symbolPath.data());
+    char* pathCopy = _strdup(symbolPathBuf);
     if (pathCopy == nullptr)
     {
         return FALSE;
@@ -179,15 +258,41 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSym
         // Build full path to potential PDB file
         if (PathCombineA(fullPath, token, fileName))
         {
-            spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Checking path: %s\n", fullPath);
+            sprintf_s(logBuf, "EfiSymComposition: Checking path: %s\n", fullPath);
+            LogMessage(logBuf);
 
             // Check if file exists
             DWORD attribs = GetFileAttributesA(fullPath);
             if (attribs != INVALID_FILE_ATTRIBUTES && !(attribs & FILE_ATTRIBUTE_DIRECTORY))
             {
-                spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Found symbol file: %s\n", fullPath);
+                sprintf_s(logBuf, "EfiSymComposition: Found symbol file: %s\n", fullPath);
+                LogMessage(logBuf);
 
-                // TODO: Layer on top of ElfBinComposition and use OpenSymbols to have it load the ELF based .debug file.
+                // Create debug source file for the .debug file
+                ComPtr<ISvcDebugSourceFile> spDebugFile;
+                hr = Microsoft::WRL::MakeAndInitialize<DebugSourceFile>(&spDebugFile, fullPath);
+                if (FAILED(hr))
+                {
+                    sprintf_s(logBuf, "EfiSymComposition: Failed to create debug source file (hr=0x%08x)\n", hr);
+                    LogMessage(logBuf);
+                    goto Exit;
+                }
+
+                // open symbols
+                hr = spSymbolProvider2->OpenSymbols(
+                    spDebugFile.Get(),
+                    nullptr,
+                    nullptr,
+                    BaseAddress,
+                    ppSymbolSet
+                );
+
+                if (FAILED(hr))
+                {
+                    sprintf_s(logBuf, "EfiSymComposition: Failed to open symbols (hr=0x%08x)\n", hr);
+                    LogMessage(logBuf);
+                    goto Exit;
+                }
 
                 found = TRUE;
                 break;
@@ -197,11 +302,13 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSym
         token = strtok_s(nullptr, ";", &pathContext);
     }
 
+Exit:
     free(pathCopy);
 
     if (!found)
     {
-        spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Symbol file not found for %s\n", FilePath);
+        sprintf_s(logBuf, "EfiSymComposition: Symbol file not found for %s\n", FilePath);
+        LogMessage(logBuf);
     }
 
     return found;
