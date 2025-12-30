@@ -31,69 +31,59 @@ HRESULT CALLBACK DebugExtensionInitialize(PULONG /*pVersion*/, PULONG /*pFlags*/
     // Get the debug client to access the service manager
     //
     ComPtr<IDebugClient> spClient;
-    hr = DebugCreate(__uuidof(IDebugClient), (void**)&spClient);
-    if (FAILED(hr))
-    {
-        return hr;
-    }
+    IfFailedReturn(DebugCreate(__uuidof(IDebugClient), (void**)&spClient));
+
+    ComPtr<IDebugControl> spControl;
+    IfFailedReturn(spClient.As(&spControl));
 
     //
     // Get the composition bridge
     //
     ComPtr<IDebugTargetCompositionBridge> spCompositionBridge;
-    hr = spClient.As(&spCompositionBridge);
-    if (FAILED(hr))
-    {
-        return hr;
-    }
+    IfFailedReturn(spClient.As(&spCompositionBridge));
 
     //
     // Get the service manager for the current composition
     //
     ULONG systemId = 0;
     ComPtr<IDebugServiceManager> spServiceManager;
-    hr = spCompositionBridge->GetServiceManager(systemId, &spServiceManager);
-    if (FAILED(hr))
-    {
-        return hr;
-    }
+    IfFailedReturn(spCompositionBridge->GetServiceManager(systemId, &spServiceManager));
+
+    ComPtr<IDebugServiceManager5> spServiceManager5;
+    IfFailedReturn(spServiceManager.As(&spServiceManager5));
+
+    //
+    // There can be different types of images in a EFI environment, setup an aggregator and preserve existing symbols
+    // providers if needed.
+    //
+    ComPtr<IDebugServiceLayer> spExistingProvider = nullptr;
+    hr = spServiceManager->QueryService(DEBUG_SERVICE_SYMBOL_PROVIDER, IID_PPV_ARGS(&spExistingProvider));
 
     //
     // Create and initialize our symbol provider service
     //
     ComPtr<EfiSymCompositionProvider> spProvider;
-    hr = MakeAndInitialize<EfiSymCompositionProvider>(&spProvider);
-    if (FAILED(hr))
-    {
-        return hr;
-    }
+    IfFailedReturn(MakeAndInitialize<EfiSymCompositionProvider>(&spProvider));
 
     //
-    // Register the symbol provider service.
-    // This will cause LocateSymbolsForImage to be called for every module symbol resolution.
+    // If there's an existing symbol provider, use AggregateService to combine them.
+    // Otherwise, just register our provider.
     //
-    hr = spProvider->RegisterServices(spServiceManager.Get());
-    if (FAILED(hr))
+    if (spExistingProvider)
     {
-        return hr;
+        IfFailedReturn(spServiceManager5->AggregateService(DEBUG_SERVICE_SYMBOL_PROVIDER, spProvider.Get()));
+    }
+    else
+    {
+        IfFailedReturn(spProvider->RegisterServices(spServiceManager.Get()));
     }
 
     //
     // Make sure that Elf composition is loaded.
     //
-    ComPtr<IDebugControl> spControl;
-    if (FAILED(spClient.As(&spControl)))
-    {
-        return hr;
-    }
-
-    hr = spControl->Execute(DEBUG_OUTCTL_IGNORE,
-                            ".load ElfBinComposition",
-                            DEBUG_EXECUTE_NOT_LOGGED);
-    if (FAILED(hr))
-    {
-        return hr;
-    }
+    IfFailedReturn(spControl->Execute(DEBUG_OUTCTL_IGNORE,
+                                      ".load ElfBinComposition",
+                                      DEBUG_EXECUTE_NOT_LOGGED));
 
     //
     // Create the elf service and stash the pointer for later use.
