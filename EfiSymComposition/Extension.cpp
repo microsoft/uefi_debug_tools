@@ -110,6 +110,9 @@ HRESULT CALLBACK DebugExtensionInitialize(PULONG /*pVersion*/, PULONG /*pFlags*/
     IfFailedReturn(spElfProvider.As(&spElfSymbolProvider));
     spProvider->SetSymbolProvider(spElfSymbolProvider.Detach());
 
+    // Store the debug client so we can get symbol paths
+    spProvider->SetDebugClient(spClient.Get());
+
     return S_OK;
 }
 

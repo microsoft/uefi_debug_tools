@@ -142,35 +142,7 @@ private:
     ULONG64 m_mappedSize = 0;
 };
 
-// Helper function to log to both OutputDebugString and a file
-static void LogMessage(const char* message)
-{
-    OutputDebugStringA(message);
-
-    // Also write to a log file in the temp directory
-    char tempPath[MAX_PATH];
-    if (GetTempPathA(MAX_PATH, tempPath) > 0)
-    {
-        char logPath[MAX_PATH];
-        sprintf_s(logPath, "%sEfiSymComposition.log", tempPath);
-
-        FILE* logFile = nullptr;
-        if (fopen_s(&logFile, logPath, "a") == 0 && logFile != nullptr)
-        {
-            // put a time stamp first
-            SYSTEMTIME st;
-            GetLocalTime(&st);
-            fprintf(logFile, "[%04d-%02d-%02d %02d:%02d:%02d] ",
-                    st.wYear, st.wMonth, st.wDay,
-                    st.wHour, st.wMinute, st.wSecond);
-
-            fputs(message, logFile);
-            fclose(logFile);
-        }
-    }
-}
-
-BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcSymbolProvider2 *spSymbolProvider2)
+BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcSymbolProvider2 *spSymbolProvider2, _In_opt_ IDebugClient *pDebugClient)
 {
     if (FilePath == nullptr || FilePath[0] == '\0' || BaseAddress == 0 || spSymbolProvider2 == nullptr)
     {
@@ -178,23 +150,37 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSym
     }
 
     HRESULT hr = S_OK;
-    char logBuf[512];
 
-    sprintf_s(logBuf, "EfiSymComposition: Loading EFI symbols for base %I64x, PDB path: %s\n", BaseAddress, FilePath);
-    LogMessage(logBuf);
-
-    // Get symbol path from environment variable _NT_SYMBOL_PATH
-    char symbolPathBuf[4096] = {0};
-    DWORD result = GetEnvironmentVariableA("_NT_SYMBOL_PATH", symbolPathBuf, sizeof(symbolPathBuf));
-    if (result == 0 || result >= sizeof(symbolPathBuf))
+    // Get debug control interface for logging
+    ComPtr<IDebugControl> spControl;
+    if (pDebugClient != nullptr)
     {
-        LogMessage("EfiSymComposition: Failed to get _NT_SYMBOL_PATH environment variable\n");
-        // fall back to default of "D:\\wslsym" TEMP
-        strcpy_s(symbolPathBuf, sizeof(symbolPathBuf), "D:\\wslsym");
+        pDebugClient->QueryInterface(IID_PPV_ARGS(&spControl));
     }
 
-    sprintf_s(logBuf, "EfiSymComposition: Symbol path: %s\n", symbolPathBuf);
-    LogMessage(logBuf);
+    if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Loading EFI symbols for base %I64x, PDB path: %s\n", BaseAddress, FilePath);
+
+    // Get symbol path from debugger if available
+    char symbolPathBuf[4096] = {0};
+
+    if (pDebugClient != nullptr)
+    {
+        ComPtr<IDebugSymbols3> spSymbols;
+        if (SUCCEEDED(pDebugClient->QueryInterface(IID_PPV_ARGS(&spSymbols))))
+        {
+            ULONG pathSize = 0;
+            spSymbols->GetSymbolPath(symbolPathBuf, sizeof(symbolPathBuf), &pathSize);
+        }
+    }
+
+    // Fallback to default if we couldn't get the symbol path
+    if (symbolPathBuf[0] == '\0')
+    {
+        if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Failed to get symbol path from debugger, using default\n");
+        strcpy_s(symbolPathBuf, sizeof(symbolPathBuf), "D:\\wslsym;D:\\sym");
+    }
+
+    if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Symbol path: %s\n", symbolPathBuf);
 
     // Extract just the filename from the PDB path
     const char* fileName = strrchr(FilePath, '\\');
@@ -222,15 +208,13 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSym
             strcpy_s(ext, sizeof(fixedName) - (ext - fixedName), ".debug");
         }
         fileName = fixedName;
-        sprintf_s(logBuf, "EfiSymComposition: Converted .dll to .debug: %s\n", fileName);
-        LogMessage(logBuf);
+        if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Converted .dll to .debug: %s\n", fileName);
     } else {
         strcpy_s(fixedName, sizeof(fixedName), fileName);
         fileName = fixedName;
     }
 
-    sprintf_s(logBuf, "EfiSymComposition: Searching for symbol file: %s\n", fileName);
-    LogMessage(logBuf);
+    if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Searching for symbol file: %s\n", fileName);
 
     // Parse the symbol path and search for the PDB file
     // Symbol path is semicolon-delimited
@@ -258,23 +242,20 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSym
         // Build full path to potential PDB file
         if (PathCombineA(fullPath, token, fileName))
         {
-            sprintf_s(logBuf, "EfiSymComposition: Checking path: %s\n", fullPath);
-            LogMessage(logBuf);
+            if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Checking path: %s\n", fullPath);
 
             // Check if file exists
             DWORD attribs = GetFileAttributesA(fullPath);
             if (attribs != INVALID_FILE_ATTRIBUTES && !(attribs & FILE_ATTRIBUTE_DIRECTORY))
             {
-                sprintf_s(logBuf, "EfiSymComposition: Found symbol file: %s\n", fullPath);
-                LogMessage(logBuf);
+                if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Found symbol file: %s\n", fullPath);
 
                 // Create debug source file for the .debug file
                 ComPtr<ISvcDebugSourceFile> spDebugFile;
                 hr = Microsoft::WRL::MakeAndInitialize<DebugSourceFile>(&spDebugFile, fullPath);
                 if (FAILED(hr))
                 {
-                    sprintf_s(logBuf, "EfiSymComposition: Failed to create debug source file (hr=0x%08x)\n", hr);
-                    LogMessage(logBuf);
+                    if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Failed to create debug source file (hr=0x%08x)\n", hr);
                     goto Exit;
                 }
 
@@ -289,8 +270,7 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSym
 
                 if (FAILED(hr))
                 {
-                    sprintf_s(logBuf, "EfiSymComposition: Failed to open symbols (hr=0x%08x)\n", hr);
-                    LogMessage(logBuf);
+                    if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Failed to open symbols (hr=0x%08x)\n", hr);
                     goto Exit;
                 }
 
@@ -307,8 +287,7 @@ Exit:
 
     if (!found)
     {
-        sprintf_s(logBuf, "EfiSymComposition: Symbol file not found for %s\n", FilePath);
-        LogMessage(logBuf);
+        if (spControl) spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Symbol file not found for %s\n", FilePath);
     }
 
     return found;
