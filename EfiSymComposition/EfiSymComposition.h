@@ -58,7 +58,7 @@ class EFIEfiSymCompositionProvider;
 } // Debugger
 
 // Helper function to find symbol file and call ElfBinComposition's OpenSymbols
-BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcSymbolProvider2 *spSymbolProvider2, _In_opt_ IDebugClient *pDebugClient);
+BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcSymbolProvider2 *spSymbolProvider2, _In_opt_ IDebugClient *pDebugClient, _In_opt_ PVOID pBldIdData, _In_ SIZE_T bldIdSize);
 
 #include "EfiSymCompositionService.h"
 

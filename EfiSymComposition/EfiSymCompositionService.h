@@ -242,8 +242,39 @@ public:
                                 if (strstr(pdbPath, ".dll") != NULL || strstr(pdbPath, ".debug") != NULL)
                                 {
                                     // This is an EFI image with ELF debug info
+                                    // Try to locate the .bldid section
+                                    PVOID pBldIdData = nullptr;
+                                    SIZE_T bldIdSize = 0;
+                                    std::unique_ptr<BYTE[]> bldIdBuffer;
+
+                                    // Read section headers
+                                    WORD numSections = ntHeaders.FileHeader.NumberOfSections;
+                                    ULONG64 sectionHeadersAddress = ntHeadersAddress + FIELD_OFFSET(IMAGE_NT_HEADERS64, OptionalHeader) + ntHeaders.FileHeader.SizeOfOptionalHeader;
+
+                                    for (WORD i = 0; i < numSections; i++)
+                                    {
+                                        IMAGE_SECTION_HEADER sectionHeader = {};
+                                        hr = spMemory->ReadMemory(spAddrCtx.Get(), sectionHeadersAddress + (i * sizeof(IMAGE_SECTION_HEADER)), &sectionHeader, sizeof(sectionHeader), &bytesRead);
+                                        if (SUCCEEDED(hr) && bytesRead == sizeof(sectionHeader))
+                                        {
+                                            // Check if this is the .bldid section
+                                            if (strcmp((const char*)sectionHeader.Name, ".bldid") == 0 && sectionHeader.SizeOfRawData > 0)
+                                            {
+                                                // Allocate buffer and read the section data
+                                                bldIdSize = sectionHeader.SizeOfRawData;
+                                                bldIdBuffer = std::make_unique<BYTE[]>(bldIdSize);
+                                                hr = spMemory->ReadMemory(spAddrCtx.Get(), baseAddress + sectionHeader.VirtualAddress, bldIdBuffer.get(), bldIdSize, &bytesRead);
+                                                if (SUCCEEDED(hr) && bytesRead == bldIdSize)
+                                                {
+                                                    pBldIdData = bldIdBuffer.get();
+                                                }
+                                                break;
+                                            }
+                                        }
+                                    }
+
                                     // Call LoadEfiSymbols to handle file search and delegate to ElfBinComposition
-                                    if (LoadEfiSymbols(baseAddress, pdbPath, ppSymbolSet, m_spSymbolProvider.Get(), m_spDebugClient.Get()))
+                                    if (LoadEfiSymbols(baseAddress, pdbPath, ppSymbolSet, m_spSymbolProvider.Get(), m_spDebugClient.Get(), pBldIdData, bldIdSize))
                                     {
                                         // Successfully loaded symbols
                                         return S_OK;

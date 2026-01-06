@@ -789,7 +789,7 @@ struct DECLSPEC_UUID("0EEEA5D0-1055-4c87-8BD8-9895FF2C9D10") ISvcSecondaryStateS
 // 3) Source File Information (ISvcSymbolSetSimpleSourceFileInformation)
 //
 //     A provider which can enumerate source files and their association to compilation units / compilands
-//     (separately from source line resolution) can implement ISvcSymbolSetSimpleSourceFileInformation.   
+//     (separately from source line resolution) can implement ISvcSymbolSetSimpleSourceFileInformation.
 //
 // 4) Scopes and Optimization Data (ISvcSymbolSetScopeResolution)
 //
@@ -952,7 +952,7 @@ DEFINE_GUID(DEBUG_MODULEINDEXKEY_GO_BUILDID, 0x367f587b, 0x45d9, 0x4007, 0x9b, 0
 
 //
 // Q: What is a target...?
-// A: A target is what the *USER* perceives as an independently debuggable thing.  
+// A: A target is what the *USER* perceives as an independently debuggable thing.
 //
 // A debugger extension can get an existing target or create a new target.  New targets are
 // created in essentially a "blank" state (a services layer with no services).  The new target
@@ -961,7 +961,7 @@ DEFINE_GUID(DEBUG_MODULEINDEXKEY_GO_BUILDID, 0x367f587b, 0x45d9, 0x4007, 0x9b, 0
 
 //
 // Q: How does a debugger extension come in and provide a "view" of a "Hyper-V" guest.
-// A:  
+// A:
 //    ON STOP (event ...?)
 //        1] It finds the relevant target (e.g.: the debugger target of the Hyper-V root partition).
 //        2] It queries the relevant target for the service manager
@@ -978,7 +978,7 @@ DEFINE_GUID(DEBUG_MODULEINDEXKEY_GO_BUILDID, 0x367f587b, 0x45d9, 0x4007, 0x9b, 0
 //**************************************************************************
 // Target Composition Layer:
 //
-// A "target composition component" is an object (or an aggregation of smaller objects) 
+// A "target composition component" is an object (or an aggregation of smaller objects)
 // which provide one or more standardized services.
 //
 
@@ -1010,7 +1010,7 @@ DECLARE_INTERFACE_(IDebugTargetComposition, IUnknown)
         ) PURE;
 
     // RegisterComponent():
-    // 
+    //
     // Registers a given component by GUID such that an instance of the component can be created
     // via Create[AndQuery]Component.
     //
@@ -1075,7 +1075,7 @@ DECLARE_INTERFACE_(IDebugTargetComposition2, IDebugTargetComposition)
     // via Create[AndQuery]Component.
     //
     // In addition, registers the component as a conditional implementation of a given service as given by
-    // the conditional service information.  
+    // the conditional service information.
     //
     // The given component can either be created by its explicit component GUID or it can be created by a
     // the service GUID and a description of the conditions.
@@ -1099,7 +1099,7 @@ DECLARE_INTERFACE_(IDebugTargetComposition2, IDebugTargetComposition)
         ) PURE;
 
     // CreateAndQueryConditionalService():
-    // 
+    //
     STDMETHOD(CreateAndQueryConditionalService)(
         THIS_
         _In_ SvcConditionalServiceInformation *conditionalServiceInfo,
@@ -1114,7 +1114,7 @@ DECLARE_INTERFACE_(IDebugTargetComposition2, IDebugTargetComposition)
 DECLARE_INTERFACE_(IDebugTargetComposition3, IDebugTargetComposition2)
 {
     // RegisterComponentAsStandardAggregator():
-    // 
+    //
     // Registers a given component by GUID such that it acts as the standard means of aggregation for
     // another service as identified by GUID.
     //
@@ -1159,7 +1159,7 @@ HRESULT CreateTargetCompositionManager(_COM_Outptr_ IDebugTargetComposition** co
 //
 //     Debug Service Manager:
 //         - A management component which aggregates a set of components that provide debug services.
-//           These services act in combination to provide in order to provide the capabilities of debugging 
+//           These services act in combination to provide in order to provide the capabilities of debugging
 //           the target.  The following services are examples of services which may be provided
 //           by the components aggregated by the service manager:
 //
@@ -1167,7 +1167,7 @@ HRESULT CreateTargetCompositionManager(_COM_Outptr_ IDebugTargetComposition** co
 //           Physical Memory Service
 //           Process Enumeration Service
 //
-//     
+//
 
 #undef INTERFACE
 #define INTERFACE IDebugServiceManager
@@ -1263,7 +1263,7 @@ DECLARE_INTERFACE_(IDebugServiceEnumerator, IUnknown)
     //*************************************************
     // IDebugServiceEnumerator:
     //
-    
+
     // Reset():
     //
     // Resets the enumerator.
@@ -1286,7 +1286,7 @@ DECLARE_INTERFACE_(IDebugServiceEnumerator, IUnknown)
 //
 // IDebugServiceManager2:
 //
-// 
+//
 #undef INTERFACE
 #define INTERFACE IDebugServiceManager2
 DECLARE_INTERFACE_(IDebugServiceManager2, IDebugServiceManager)
@@ -1348,7 +1348,7 @@ DECLARE_INTERFACE_(IDebugServiceManager4, IDebugServiceManager3)
     // NOTE: If a component wishes to be both a conditional service and a canonical service, it must call
     //       both RegisterConditionalService and RegisterService and deal with the fact that it may be initialized
     //       twice.  An example of this might be a disassembler service which registers as the AMD64 disassembler
-    //       but also the canonical disassembler for an AMD64 debug target. 
+    //       but also the canonical disassembler for an AMD64 debug target.
     //
     //       It may be the case that such a service would need to listen for change notifications and add/remove
     //       itself as the canonical service if conditions can change.
@@ -1360,7 +1360,7 @@ DECLARE_INTERFACE_(IDebugServiceManager4, IDebugServiceManager3)
         ) PURE;
 
     // QueryConditionalService():
-    // 
+    //
     // Find a component which implements the service given in in the conditionalServiceInfo structure according
     // to the conditions specified there and query it for the interface specified by serviceInterface.  Such service
     // is returned in interfaceUnknown.
@@ -1406,21 +1406,21 @@ DECLARE_INTERFACE_(IDebugServiceManager5, IDebugServiceManager4)
 
     // AggregateService():
     //
-    // Adds a new service to an aggregate collection in the service manager. 
+    // Adds a new service to an aggregate collection in the service manager.
     //
     // Instead of calling pService->RegisterServices(pServiceManager) to register the service, calling
     // pServiceManager->AggregateService(DEBUG_SERVICE_XXX, pService) acts as a "helper method" with the
     // following functionality:
     //
     //     - If there is no DEBUG_SERVICE_XXX in the service container, it behaves identically to
-    //       calling pService->RegisterServices(pServiceManager).  
+    //       calling pService->RegisterServices(pServiceManager).
     //
     //     - If there is a DEBUG_SERVICE_XXX in the service container and that service is already an aggregator,
     //       it queries the existing service for IDebugServiceAggregate and calls AggregateService.  In effect,
     //       it adds 'newAggregateService' as one of the children that the aggregator aggregates.
     //
     //     - If there is a DEBUG_SERVICE_XXX in the service container and that service is *NOT* an aggregator,
-    //       it creates the default aggregator for the service 
+    //       it creates the default aggregator for the service
     //       (via IDebugTargetComposition3::CreateServiceAggregatorComponent), replaces what was in the container
     //       with the newly created aggregator, and adds both the pre-existing service and 'newAggregateService'
     //       as children that the aggregator aggregates.
@@ -1444,7 +1444,7 @@ enum ServiceNotificationKind
     // of the service stack for a given service.
     ServiceManagerNotification,
 
-    // Indicates that this notification is being passed down the service stack from a higher level component 
+    // Indicates that this notification is being passed down the service stack from a higher level component
     // in the stack for a given service.
     LayeredNotification
 };
@@ -1464,13 +1464,13 @@ enum ServiceNotificationKind
 //        services (a call to GetServiceDependencies).  The component should return all services that it depends on:
 //
 //            - A "hard dependency" is a service which this component relies on and cannot do without.  The service manager
-//              will not "start" the target until all dependent services are initialized.  The set of "hard dependencies" 
+//              will not "start" the target until all dependent services are initialized.  The set of "hard dependencies"
 //              should form a DAG.  Initialization of each service in the DAG will occur in topological order.
 //
 //            - A "soft dependency" is a service which is either not mandatory or creates a cycle in service dependencies.
 //              The component in question should be prepared to deal with call failures from such a service.
 //
-//        NOTE: For conditional services, a dependency can be resolved via either a regular service *OR* a 
+//        NOTE: For conditional services, a dependency can be resolved via either a regular service *OR* a
 //              another conditional service with the same condition set.  A regular service is preferred.
 //
 //     3) The service manager will perform a topological sort of the DAG of service dependencies and call InitializeServices
@@ -1542,7 +1542,7 @@ DECLARE_INTERFACE_(IDebugServiceLayer, IUnknown)
     // NotifyEvent():
     //
     // Services in the service stack are notified of events they explicitly register to
-    // via this API. 
+    // via this API.
     //
     STDMETHOD(NotifyEvent)(
         THIS_
@@ -1618,7 +1618,7 @@ DECLARE_INTERFACE_(IDebugServiceAggregate, IUnknown)
 // that is assumed if this interface is not supported.
 //
 // An example of a service capability query is whether the target supports backward execution.  The default answer
-// is "no".  Without knowing this, calling various methods on the step controller would simply return 
+// is "no".  Without knowing this, calling various methods on the step controller would simply return
 // an E_INVALIDARG / E_NOTIMPL without indication as to why.
 //
 #undef INTERFACE
@@ -1730,10 +1730,10 @@ enum ServiceCapsThreadingModelKind
     //
     // Indicates that access to the service is free threaded.  This means that calls on the service interfaces
     // may happen on arbitrary and multiple threads.  Any required synchronization is provided by the service.
-    // This also means that calls on objects returned from the service interfaces may happen on arbitrary and 
+    // This also means that calls on objects returned from the service interfaces may happen on arbitrary and
     // multiple threads.  Those objects provide any required synchronization.
     //
-    // Note that this *DOES NOT* imply a threading model on IDebugServiceLayer* 
+    // Note that this *DOES NOT* imply a threading model on IDebugServiceLayer*
     //
     ServiceCapsThreadingModelFree
 };
@@ -1752,7 +1752,7 @@ enum ServiceCapsThreadingModelKind
 // IMAGE_FILE_MACHINE_AMD64.  This is also DEBUG_COMPONENTAGGREGATE_MACHINEARCH_AMD64.
 //
 // {4BC151FE-5096-47e3-8B1E-2093F20BB979}
-// 
+//
 DEFINE_GUID(DEBUG_ARCHDEF_AMD64, 0x4bc151fe, 0x5096, 0x47e3, 0x8b, 0x1e, 0x20, 0x93, 0xf2, 0xb, 0xb9, 0x79);
 
 // DEBUG_ARCHDEF_X86:
@@ -1910,7 +1910,7 @@ DEFINE_GUID(DEBUG_COMPONENTAGGREGATE_MACHINEARCH_AMD64, 0x4bc151fe, 0x5096, 0x47
 //
 //     DEBUG_COMPONENTSVC_MACHINEARCH_X86_PAGETABLEREADER
 //     DEBUG_COMPONENTSVC_MACHINEARCH_X86_ARCHINFO
-//   
+//
 // Component GUID:
 //
 //     {EDFD8AD0-1369-431d-B574-33E72CF1B12E}
@@ -1927,7 +1927,7 @@ DEFINE_GUID(DEBUG_COMPONENTAGGREGATE_MACHINEARCH_X86, 0xedfd8ad0, 0x1369, 0x431d
 //
 //     DEBUG_COMPONENTSVC_MACHINEARCH_ARM64_PAGETABLEREADER
 //     DEBUG_COMPONENTSVC_MACHINEARCH_ARM64_ARCHINFO
-//   
+//
 // Component GUID:
 //
 //     {71DCF2FF-BBD0-4300-A37A-3B04F4F9713B}
@@ -1944,7 +1944,7 @@ DEFINE_GUID(DEBUG_COMPONENTAGGREGATE_MACHINEARCH_ARM64, 0x71dcf2ff, 0xbbd0, 0x43
 //
 //     DEBUG_COMPONENTSVC_MACHINEARCH_ARM32_PAGETABLEREADER
 //     DEBUG_COMPONENTSVC_MACHINEARCH_ARM32_ARCHINFO
-//   
+//
 // Component GUID:
 //
 //     {1C48E7A8-CD38-477e-8661-5718A315810D}
@@ -1966,7 +1966,7 @@ DEFINE_GUID(DEBUG_COMPONENTAGGREGATE_BASE_KERNELFULLDUMP32, 0x88d793fa, 0x5df5, 
 // DEBUG_COMPONENTAGGREGATE_BASE_KERNELFULLDUMP64:
 //
 // A base layer which understands the semantics of a 64-bit kernel full dump on top of a file service.
-// 
+//
 // Components Aggregated:
 //
 // Services Provided:
@@ -2018,7 +2018,7 @@ DEFINE_GUID(DEBUG_COMPONENTAGGREGATE_OS_KERNEL_LOCATOR, 0x49643ed, 0x1e60, 0x476
 //
 // Services Depended On:
 //
-//     (Required) DEBUG_SERVICE_PHYSICAL_MEMORY 
+//     (Required) DEBUG_SERVICE_PHYSICAL_MEMORY
 //     (Required) DEBUG_SERVICE_ARCHINFO
 //     (Optional) DEBUG_SERVICE_PAGEFILE_READER
 //
@@ -2037,7 +2037,7 @@ DEFINE_GUID(DEBUG_COMPONENTSVC_MACHINEARCH_AMD64_PAGETABLEREADER, 0x3ea63bf1, 0x
 // Services Provided:
 //
 //     DEBUG_SERVICE_ARCHINFO
-// 
+//
 // Services Depended On:
 //
 //     None
@@ -2200,7 +2200,7 @@ DEFINE_GUID(DEBUG_COMPONENTSVC_MACHINEARCH_ARM32_ARCHINFO, 0x49f1d274, 0x750e, 0
 //
 //     DEBUG_PRIVATE_SERVICE_DEBUGSOURCE (ISvcDebugSourceFile)
 //
-// Services Depended On: 
+// Services Depended On:
 //
 //     None
 //
@@ -2269,7 +2269,7 @@ DECLARE_INTERFACE_(IComponentFileSourceInitializer2, IComponentFileSourceInitial
 //     None
 //
 // Component GUID:
-// 
+//
 //     {CA1FA8A8-53A4-4cca-B4A8-266815E3E818}
 //
 DEFINE_GUID(DEBUG_COMPONENTSVC_VIEWSOURCE, 0xca1fa8a8, 0x53a4, 0x4cca, 0xb4, 0xa8, 0x26, 0x68, 0x15, 0xe3, 0xe8, 0x18);
@@ -2499,7 +2499,7 @@ DEFINE_GUID(DEBUG_COMPONENTSVC_KERNELFULLDUMP64_MACHINE, 0x41056a8f, 0xa108, 0x4
 //     (Required) DEBUG_SERVICE_PHYSICAL_MEMORY
 //     (Required) DEBUG_SERVICE_VIRTUAL_TO_PHYSICAL_TRANSLATION
 //     (Optional) DEBUG_SERVICE_PAGEFILE_READER
-//     
+//
 // {2BB80CD4-BB10-46ea-98E3-33C576D2E205}
 //
 DEFINE_GUID(DEBUG_COMPONENTSVC_VIRTUALMEMORY_TO_PHYSICALMEMORY, 0x2bb80cd4, 0xbb10, 0x46ea, 0x98, 0xe3, 0x33, 0xc5, 0x76, 0xd2, 0xe2, 0x5);
@@ -2599,7 +2599,7 @@ DEFINE_GUID(DEBUG_COMPONENTSVC_PEIMAGE_IMAGEPARSEPROVIDER, 0xbe0e2781, 0x4ff3, 0
 // Dependent Services:
 //
 //     DEBUG_SERVICE_VIRTUAL_MEMORY
-// 
+//
 // {4ACED62F-CEF1-4f74-A1A1-994D61959A80}
 //
 DEFINE_GUID(DEBUG_COMPONENTSVC_PEIMAGE_IMAGEPROVIDER, 0x4aced62f, 0xcef1, 0x4f74, 0xa1, 0xa1, 0x99, 0x4d, 0x61, 0x95, 0x9a, 0x80);
@@ -2686,7 +2686,7 @@ DECLARE_INTERFACE_(IComponentImageBackedVirtualMemoryInitializer, IUnknown)
     // the component is inserted into the service container, it will stack on top of whatever virtual memory
     // service is already in the service container.
     //
-    // 'projectNonFileMappedBytesAsZero' indicates whether bytes attributable to the image which are not 
+    // 'projectNonFileMappedBytesAsZero' indicates whether bytes attributable to the image which are not
     // contained in the underlying virtual memory service *OR* the image file itself should be provided
     // by this service.  Such bytes would be things which are zero initialized (or uninitialized) but
     // allocated by a loader (e.g.: the .bss segment)
@@ -2707,7 +2707,7 @@ DECLARE_INTERFACE_(IComponentImageBackedVirtualMemoryInitializer, IUnknown)
 //
 //     This implementation will, by default, return one physical frame per frame returned from the unwinder.
 //     It can optionally also place inline stack frames above each physical frame for each inline method.  Note
-//     that such requires access to the symbol provider and symbols which provide inlining information 
+//     that such requires access to the symbol provider and symbols which provide inlining information
 //     as a symbol set.  Note that PDBs are presently not accessible via a symbol set.
 //
 // Initializer Interface:
@@ -2747,7 +2747,7 @@ DECLARE_INTERFACE_(IComponentStackUnwinderStackProviderInitializer, IUnknown)
     // directly look at symbols for each stack frame, ask about inline information at each call site, and
     // insert inline frames into the frames provided.
     //
-    // The default value for 'provideInlineFrames' without the initializer called is false. 
+    // The default value for 'provideInlineFrames' without the initializer called is false.
     //
     // NOTE: The stack provider can only provide inline frames for symbol formats which are exposed through
     // the use of a symbol provider.  PDBs do not yet meet that classification.
@@ -2769,7 +2769,7 @@ DECLARE_INTERFACE_(IComponentDwarfStackUnwinderInitializer, IUnknown)
 {
     // Initialize():
     //
-    // Initializes the DEBUG_COMPONENT_DWARF_STACK_UNWINDER component. It takes an optional stack unwinder 
+    // Initializes the DEBUG_COMPONENT_DWARF_STACK_UNWINDER component. It takes an optional stack unwinder
     // which can be used as a fallback by the DWARF stack unwinder. (This is used for ARM targets atm.)
     //
     STDMETHOD(Initialize)(
@@ -2982,7 +2982,7 @@ DEFINE_GUID(DEBUG_COMPONENTSVC_AGGREGATING_THREAD_ENUMERATOR, 0x1ff094ab, 0xbbab
 //
 
 // DEBUG_COMPONENTSVC_FORWARD_PHYSICALMEMORY:
-// 
+//
 // Description:
 //
 //     A component which forwards a physical memory request from one service manager to another.  This allows for the creation
@@ -3003,7 +3003,7 @@ DEFINE_GUID(DEBUG_COMPONENTSVC_AGGREGATING_THREAD_ENUMERATOR, 0x1ff094ab, 0xbbab
 DEFINE_GUID(DEBUG_COMPONENTSVC_FORWARD_PHYSICALMEMORY, 0xa9e8183, 0xaf09, 0x4f1c, 0xa4, 0x2d, 0xd8, 0xdb, 0xa0, 0x2a, 0xb2, 0x7d);
 
 // DEBUG_COMPONENTSVC_FORWARD_VIRTUALMEMORY:
-// 
+//
 // Description:
 //
 //     A component which forwards a virtual memory request from one service manager to another.  This allows for the creation
@@ -3111,11 +3111,11 @@ DEFINE_GUID(DEBUG_SERVICE_STACK_UNWINDER, 0xb84a9083, 0x8f92, 0x4783, 0xb6, 0xe1
 // DEBUG_SERVICE_ARCHINFO:
 //
 // Defines the standard mechanism for getting an abstraction over architecture specific details
-// of a debug target (e.g.: hardware page sizes, etc...).  
+// of a debug target (e.g.: hardware page sizes, etc...).
 //
 // This service does not provide any configuration details (e.g.: number of CPUs) or hardware debug capabilities.
 // Every composition stack MUST have this service.
-// 
+//
 // {1AAAE599-C167-42b5-B46F-D8B614DA622A}
 //
 DEFINE_GUID(DEBUG_SERVICE_ARCHINFO, 0x1aaae599, 0xc167, 0x42b5, 0xb4, 0x6f, 0xd8, 0xb6, 0x14, 0xda, 0x62, 0x2a);
@@ -3142,8 +3142,8 @@ DEFINE_GUID(DEBUG_SERVICE_MACHINE, 0x8514f5bc, 0x5827, 0x4794, 0xbf, 0xf, 0x61, 
 
 // DEBUG_SERVICE_VIRTUAL_MEMORY:
 //
-// Defines the standard mechanism for accessing the virtual memory 
-// associated with a given process / address space. 
+// Defines the standard mechanism for accessing the virtual memory
+// associated with a given process / address space.
 //
 // This service is always available on a given debug target.  The implementation of this service
 // may defer to a cache, may translate to physical addresses, or may issue remote read requests.
@@ -3183,7 +3183,7 @@ DEFINE_GUID(DEBUG_SERVICE_IOSPACE_MEMORY, 0xdae9985b, 0xdcc6, 0x4eee, 0xb5, 0xb0
 // DEBUG_SERVICE_VIRTUAL_TO_PHYSICAL_TRANSLATION:
 //
 // Defines the standard mechanism for translating virtual addresses within a particular process
-// or address space to physical addresses (if possible).   
+// or address space to physical addresses (if possible).
 //
 // This service is only available on targets which speak in terms of physical memory and have services available
 // to interpret the page tables.
@@ -3272,7 +3272,7 @@ DEFINE_GUID(DEBUG_SERVICE_OS_KERNELINFRASTRUCTURE, 0xbcbac4b1, 0xed84, 0x4326, 0
 
 // DEBUG_SERVICE_OS_KERNELLOCATOR
 //
-// Defines the standard mechanism for locating the kernel. 
+// Defines the standard mechanism for locating the kernel.
 //
 // {037AC304-09CF-472a-B2FD-C0E69C881B75}
 //
@@ -3332,7 +3332,7 @@ DEFINE_GUID(DEBUG_SERVICE_ACTIVE_EXCEPTIONS, 0x39b29a74, 0x4608, 0x4a1d, 0x81, 0
 
 // DEBUG_SERVICE_EXCEPTION_FORMATTER
 //
-// Defines a standard service for formatting exceptional events (e.g.: Win32 exceptions, Linux signals, etc...)  
+// Defines a standard service for formatting exceptional events (e.g.: Win32 exceptions, Linux signals, etc...)
 // from a target.
 //
 // {46BD1681-384A-4faa-B588-E5244E8BA65E}
@@ -3363,7 +3363,7 @@ DEFINE_GUID(DEBUG_SERVICE_STEP_CONTROLLER, 0xd9fb31d3, 0x5a02, 0x49b5, 0x82, 0x1
 
 // DEBUG_SERVICE_BREAKPOINT_CONTROLLER:
 //
-// Defines the standardized way of controlling breakpoints within a live target.  
+// Defines the standardized way of controlling breakpoints within a live target.
 //
 // This service is *OPTIONAL*.  It *SHOULD* be present for targets which wish to present other than a static
 // view; however, some targets may only provide run/stop/step and may not support breakpoints at all.
@@ -3429,7 +3429,7 @@ DEFINE_GUID(DEBUG_SERVICE_WINDOWS_EXECUTION_EXCEPTION_TRANSLATION, 0xeb09bb33, 0
 // DEBUG_PRIVATE_SERVICE_DIAGNOSTIC_SINK:
 //
 // Defines a means by which other components in the service stack can send diagnostic warning
-// or error messages. 
+// or error messages.
 //
 // {455C5AF5-B697-48db-86FF-15E51920A136}
 //
@@ -3447,7 +3447,7 @@ DEFINE_GUID(DEBUG_PRIVATE_SERVICE_DIAGNOSTIC_SINK, 0x455c5af5, 0xb697, 0x48db, 0
 // The debug source service is the very bottom of the target composition stack and provides a concrete interface.  No
 // components outside the stack should EVER access the debug source service.  It should only be accessed by components
 // within the service stack.
-// 
+//
 // {4268D211-058A-4afc-B5CD-68F1E210D03D}
 //
 DEFINE_GUID(DEBUG_PRIVATE_SERVICE_DEBUGSOURCE, 0x4268d211, 0x58a, 0x4afc, 0xb5, 0xcd, 0x68, 0xf1, 0xe2, 0x10, 0xd0, 0x3d);
@@ -3458,7 +3458,7 @@ DEFINE_GUID(DEBUG_PRIVATE_SERVICE_DEBUGSOURCE, 0x4268d211, 0x58a, 0x4afc, 0xb5, 
 // supports are entirely host defined.  An example of data which *MAY* be available with this service is the
 // search paths for symbols, etc...  via ISvcSearchPaths.
 //
-// NOTE: This service and any interfaces on it are *ENTIRELY* optional. 
+// NOTE: This service and any interfaces on it are *ENTIRELY* optional.
 //
 // {79ED793D-0659-443b-AC39-0123A488DD6F}
 //
@@ -3547,7 +3547,7 @@ DEFINE_GUID(DEBUG_SERVICE_DIAGNOSTIC_LOGGING, 0x507c628c, 0xddc3, 0x4829, 0x91, 
 // DEBUG_SERVICE_SECONDARY_STATE_SYNCHRONIZATION:
 //
 // A service which aims to synchronize state between two clients (debuggers) refering to the same target (debuggee)
-// so that a secondary client can perform queries while the primary one is busy.  The secondary state synchronization 
+// so that a secondary client can perform queries while the primary one is busy.  The secondary state synchronization
 // service provides two primary functions:
 //
 //     1) Indicating via a connection profile item how to reconnect (in a secondary way) to the same target.  A client
@@ -3659,9 +3659,9 @@ DECLARE_INTERFACE_(ISvcFileFormatDataBlock, IUnknown)
     // Read():
     //
     // Attempts to read the number of bytes specified by the 'readSize' argument from the
-    // block offset supplied by 'byteOffset' into the buffer supplied by the 'buffer' argument.  
-    // Note that a partial read is a successful state of this method.  In such a case, 
-    // the 'bytesRead' argument will be set to the number of bytes actually read and 
+    // block offset supplied by 'byteOffset' into the buffer supplied by the 'buffer' argument.
+    // Note that a partial read is a successful state of this method.  In such a case,
+    // the 'bytesRead' argument will be set to the number of bytes actually read and
     // S_FALSE will be returned.
     //
     STDMETHOD(Read)(
@@ -3714,7 +3714,7 @@ DECLARE_INTERFACE_(ISvcDebugSourceView, IUnknown)
     // Gets the the source of this view.
     //
     STDMETHOD(GetViewSource)(_COM_Outptr_ IDebugServiceManager** viewSource) PURE;
-    
+
 };
 
 #undef INTERFACE
@@ -3727,9 +3727,9 @@ DECLARE_INTERFACE_(ISvcDebugSourceFile, IUnknown)
     // Read():
     //
     // Attempts to read the number of bytes specified by the 'readSize' argument from the
-    // file offset supplied by 'byteOffset' into the buffer supplied by the 'buffer' argument.  
-    // Note that a partial read is a successful state of this method.  In such a case, 
-    // the 'bytesRead' argument will be set to the number of bytes actually read and 
+    // file offset supplied by 'byteOffset' into the buffer supplied by the 'buffer' argument.
+    // Note that a partial read is a successful state of this method.  In such a case,
+    // the 'bytesRead' argument will be set to the number of bytes actually read and
     // S_FALSE will be returned.
     //
     STDMETHOD(Read)(_In_ ULONG64 byteOffset,
@@ -3804,7 +3804,7 @@ DECLARE_INTERFACE_(ISvcDebugSourceFileInformation, IUnknown)
 };
 
 // ISvcDebugSourceWindowsKernelDebug:
-// 
+//
 // Provides extremely limited access to a KD connection.  Most components and plug-ins should
 // not directly touch anything at this level.
 //
@@ -3874,11 +3874,11 @@ enum SvcSymbolLocationKind
     // NonRegisterData.Opaque : second part of the opaque data used to identify the complex location
     //
     // If both Opaque and NonRegisterData.Opaque are zero, the complex location cannot be simplified.  Otherwise,
-    // ISvcSymbolSetComplexLocationResolution can be QI'd and methods there can *POTENTIALLY* simplify the 
+    // ISvcSymbolSetComplexLocationResolution can be QI'd and methods there can *POTENTIALLY* simplify the
     // complex location if given additional information (such as the full register context)
     //
     SvcSymbolLocationComplex,
-    
+
     // The location is an offset within the image (an RVA)
     //
     // Offset : [unsigned] the offset (RVA) within the containing image.
@@ -3888,7 +3888,7 @@ enum SvcSymbolLocationKind
     //
     SvcSymbolLocationImageOffset,
 
-    // The location is a register.  Offset is unused.  RegInfo.Number 
+    // The location is a register.  Offset is unused.  RegInfo.Number
     //
     // Offset : unused
     // RegInfo: Number = <opaque number>, Size = register size, ContextOffset = offset into context record
@@ -3937,7 +3937,7 @@ enum SvcSymbolLocationKind
     // PreOffset : [signed] offset from the register described in RegInfo where the indirect read occurs
     // PostOffset: [signed] offset from the indirectly read value
     // RegInfo   : Number = <opaque number>, Size = register size, ContextOffset = offset into context record
-    // 
+    //
     SvcSymbolLocationRegisterRelativeIndirectOffset,
 
     // The location is relative to the start of a data structure but is a bitfield.
@@ -3951,7 +3951,7 @@ enum SvcSymbolLocationKind
 
     // The location is an offset from the structure.  The offset is determined by an entry in a table.
     //
-    // TableOffsets.TableOffset :  [signed] offset from the start of the structure (this pointer) where 
+    // TableOffsets.TableOffset :  [signed] offset from the start of the structure (this pointer) where
     //                             the table is located
     // TableOffsets.TableSlot   :  [signed] slot in the table where the offset is located
     // TableOffsets.SlotSize    :  [signed] ABS(SlotSize) == size in bytes of the offset entry in the table
@@ -4002,7 +4002,7 @@ struct SvcSymbolLocation
             LONG SlotSize: 8;               // ABS(SlotSize) == size in bytes of the offset
                                             //     <0: slot is signed, >0: slot is unsigned
         } TableOffsets;
-        struct 
+        struct
         {
             ULONG Offset;                   // The offset
             ULONG FieldPosition:12;         // The bitfield position
@@ -4027,7 +4027,7 @@ struct SvcSymbolLocation
 //
 // For architectures which allow for multiple page directories, (e.g.: ARM64 TTBR0/TTBR1), this defines
 // which page directory a given query refers to.
-// 
+//
 enum DirectoryBaseKind
 {
     // DirectoryBaseDefault:
@@ -4040,7 +4040,7 @@ enum DirectoryBaseKind
 
     // DirectoryBaseUser:
     //
-    // Refers to the user page directory.  
+    // Refers to the user page directory.
     //
     DirectoryBaseUser,
 
@@ -4128,8 +4128,8 @@ DECLARE_INTERFACE_(ISvcAddressContextHardware, IUnknown)
         ) PURE;
 
     // GetPagingLevels():
-    // 
-    // Gets the number of paging levels mode that the hardware is utilizing 
+    //
+    // Gets the number of paging levels mode that the hardware is utilizing
     //
     STDMETHOD(GetPagingLevels)(
         THIS_
@@ -4208,7 +4208,7 @@ DECLARE_INTERFACE_(ISvcProcessBasicInformation, IUnknown)
 
     // GetArguments():
     //
-    // Gets the start arguments of the process.  
+    // Gets the start arguments of the process.
     //
     // An implementation for a process which does not have available arguments will return E_NOT_SET.
     //
@@ -4277,10 +4277,10 @@ DECLARE_INTERFACE_(ISvcSecurityConfiguration2, ISvcSecurityConfiguration)
 
     // GetPointerTagMask():
     //
-    // Only relevant when running on an architecture that supports some form of pointer tagging, this allows 
+    // Only relevant when running on an architecture that supports some form of pointer tagging, this allows
     // access to the pointer tag mask.
     //
-    // On architectures which do not support taagging, this should return E_NOTIMPL if the service/interface is 
+    // On architectures which do not support taagging, this should return E_NOTIMPL if the service/interface is
     // implemented.
     //
     // For user mode targets, 'pProcess' should always point to the process for which to query the tag mask.  For
@@ -4326,7 +4326,7 @@ enum SvcContextFlags
     // Special context
     SvcContextSpecial = 0x00000020,
 
-    //************************************************* 
+    //*************************************************
     // Information Flags (upper 16-bits):
     //
 
@@ -4345,7 +4345,7 @@ enum SvcContextFlags
 //
 // Interface  : ISvcRegisterFlagInformation:
 //
-// The ISvcRegisterFlagInformation interface describes details about a particular control/status flag within 
+// The ISvcRegisterFlagInformation interface describes details about a particular control/status flag within
 // a register (e.g.: the zero flag, the carry flag, etc...)
 //
 #undef INTERFACE
@@ -4438,7 +4438,7 @@ DECLARE_INTERFACE_(ISvcRegisterInformation, IUnknown)
 {
     //*************************************************
     // ISvcRegisterInformation:
-    // 
+    //
 
     // GetName():
     //
@@ -4641,7 +4641,7 @@ DECLARE_INTERFACE_(ISvcMachineArchitecture, IUnknown)
 
     // EnumerateRegisters():
     //
-    // Returns an enumerator which enumerates all registers for this architecture that are covered by 
+    // Returns an enumerator which enumerates all registers for this architecture that are covered by
     // the inpassed set of flags.
     //
     STDMETHOD(EnumerateRegisters)(
@@ -4858,7 +4858,7 @@ DECLARE_INTERFACE_(ISvcBasicDisassembly, IUnknown)
     //     - Even if 'addressContext/address' are not nullptr, the disassembler must read the instruction/bundle
     //       bytes from the given buffer and never utilize a memory service to read (or delegate to
     //       the GetInstructionDisassemblyText method).
-    //  
+    //
     STDMETHOD(GetInstructionDisassemblyTextForBuffer)(
         THIS_
         _In_reads_(bufferSize) PVOID buffer,
@@ -4889,7 +4889,7 @@ struct RegisterInformationQuery
 //
 // Provided By:
 //
-// The ISvcRegisterContext unit describes a set of registers and their values.  A register context for 
+// The ISvcRegisterContext unit describes a set of registers and their values.  A register context for
 // a standard supported platform can optionally support ISvcClassicRegisterContext where the given register
 // context can be represented by a platform specific Windows CONTEXT structure.  In addition, a register
 // context which holds a set of "special context" for a standard supported platform can optionally support
@@ -4919,7 +4919,7 @@ DECLARE_INTERFACE_(ISvcRegisterContext, IUnknown)
     // Gets the value of a register as given by its canonical register number.  The following error codes
     // carry special meaning:
     //
-    //     E_INSUFFICIENT_BUFFER: The in-passed buffer is not large enough to hold the register value. 
+    //     E_INSUFFICIENT_BUFFER: The in-passed buffer is not large enough to hold the register value.
     //                            The actual size of the register is returned in registerSize.
     //
     //     E_NOT_SET            : The register context does not contain a value for the given register and such
@@ -5114,7 +5114,7 @@ DECLARE_INTERFACE_(ISvcClassicSpecialContext, IUnknown)
 
     // GetSpecialContextSize():
     //
-    // Gets the size of the special context structure (KSPECIAL_REGISTERS for the given architecture that this 
+    // Gets the size of the special context structure (KSPECIAL_REGISTERS for the given architecture that this
     // ISvcClassicSpecialContext represents).
     //
     STDMETHOD_(ULONG64, GetSpecialContextSize)(
@@ -5152,7 +5152,7 @@ DECLARE_INTERFACE_(ISvcClassicSpecialContext, IUnknown)
 DEFINE_GUID(DEBUG_REGISTERDOMAIN_CODEVIEW, 0x5c9ce1ff, 0xcae7, 0x459c, 0xa0, 0xf8, 0x0, 0xa3, 0x4b, 0x14, 0x61, 0x33);
 
 // DEBUG_REGISTERDOMAIN_DWARF:
-// 
+//
 // Describes the register numbering domain for DWARF identifiers.
 //
 // {530B23F0-0E37-458f-A4C7-93B0254A9F8E}
@@ -5176,7 +5176,7 @@ DECLARE_INTERFACE_(ISvcRegisterTranslation, IUnknown)
     //
     // Translates from a canonical register ID to a domain specific register ID.  The canonical register ID is
     // whatever the architecture service defines for a given architecture.  A domain specific register ID may be how
-    // register numbers are stored in a PDB for a given architecture (e.g.: CodeView identifiers) or how register 
+    // register numbers are stored in a PDB for a given architecture (e.g.: CodeView identifiers) or how register
     // numbers are stored in DWARF for a given architecture, etc...
     //
     // If there is no mapping from the canonical ID to a domain ID, E_BOUNDS is returned.
@@ -5188,7 +5188,7 @@ DECLARE_INTERFACE_(ISvcRegisterTranslation, IUnknown)
         ) PURE;
 
     // TranslateToCanonicalId():
-    // 
+    //
     // Translates from a domain specific register ID to a canonical register ID.  The canonical register ID is whatever
     // the architecture services defines for a given architecture.  A domain specific register ID may be how register
     // numbers are stored in a PDB for a given architecture (e.g.: CodeView identifiers) or how register numbers
@@ -5226,7 +5226,7 @@ DECLARE_INTERFACE_(ISvcDwarfRegisterTranslation, IUnknown)
     // a canonical one via ISvcMachineArchitecture and then ask ISvcRegisterTranslation to translate it to
     // a DWARF ID via TranslateFromCanonicalId.  There are, however, some concepts in DWARF to which this may not
     // apply.  All architectures for DWARF have a return address register whether the architecture has one or not.
-    // On ARM platforms, this is the @lr register.  On x86/x64, this is a synthetic register in the FDE table.  
+    // On ARM platforms, this is the @lr register.  On x86/x64, this is a synthetic register in the FDE table.
     // Asking for the @ra abstract ID to be translated to a canonical ID will fail because the architecture does
     // not have the concept.  DWARF, however, does.  You can ask for the direct translation via this method.
     //
@@ -5253,7 +5253,7 @@ DECLARE_INTERFACE_(ISvcDwarfRegisterTranslation, IUnknown)
     //     - @reg + offset  : cfaLocation == SvcSymbolLocationRegisterRelative
     //     - [@reg + offset]: cfaLocation == SvcSymbolLocationRegisterRelativeIndirectOffset
     //
-    // While implementation of this method is optional, it is highly recommended. 
+    // While implementation of this method is optional, it is highly recommended.
     //
     STDMETHOD(TranslateTypicalCfa)(
         THIS_
@@ -5301,7 +5301,7 @@ DEFINE_GUID(DEBUG_REGISTERCONTEXTDOMAIN_LINUXKERNELTRANSITIONCONTEXT, 0x79b0bdf5
 // DEBUG_REGISTERCONTEXTDOMAIN_MACTHREADSTATE:
 //
 // Describes the register context domain for the *thread_state*_t commands stored in LC_THREAD load commands
-// within Mac OS core dumps.  
+// within Mac OS core dumps.
 //
 // {9B602ACF-4AA6-4FB7-B0F2-2DE8DEACD650}
 //
@@ -5406,7 +5406,7 @@ DECLARE_INTERFACE_(ISvcTrapContextRestoration, IUnknown)
 //
 // Interface  : ISvcExecutionUnit
 //
-// Provided By: 
+// Provided By:
 //
 // The ISvcExecutionUnit interface is provided by a debug primitive which is capable of execution of code.
 // This may be a thread.  It may be a processor core.
@@ -5461,7 +5461,7 @@ DECLARE_INTERFACE_(ISvcExecutionUnitHardware, IUnknown)
     //*************************************************
     // ISvcExecutionUnitHardware:
     //
-    
+
     // GetSpecialContext():
     //
     // NOTE: This is effectively an "ISvcExecutionUnit::SetContext" with ContextFlags set to only
@@ -5545,7 +5545,7 @@ DECLARE_INTERFACE_(ISvcMachineDebug2, ISvcMachineDebug)
     //*************************************************
     // ISvcMachineDebug2:
     //
-    
+
     // GetDefaultIoSpace():
     //
     // If a default I/O space is available, this returns it.  The machine and architecture should define this.
@@ -5595,7 +5595,7 @@ DECLARE_INTERFACE_(ISvcMachineConfiguration2, ISvcMachineConfiguration)
     //*************************************************
     // ISvcMachineConfiguration2
     //
-    
+
     // GetArchitectureGuid():
     //
     // Returns the architecture of the machine as a DEBUG_ARCHDEF_* guid.  This supports
@@ -5667,12 +5667,12 @@ DECLARE_INTERFACE_(ISvcOSKernelInfrastructure, IUnknown)
     STDMETHOD(GetDirectoryBase)(
         THIS_
         _In_ DirectoryBaseKind dirKind,
-        _In_ ISvcProcess *pProcess, 
+        _In_ ISvcProcess *pProcess,
         _Out_ ULONG64 *pDirectoryBase
         ) PURE;
 
     // GetPagingLevels():
-    // 
+    //
     // Gets the number of paging levels that a particular process will use.
     //
     STDMETHOD(GetPagingLevels)(
@@ -5779,7 +5779,7 @@ DECLARE_INTERFACE_(ISvcOSKernelTransitions, IUnknown)
     //     2) There is a conditional DEBUG_SERVICE_TRAPCONTEXTRESTORATION service registered conditioned on
     //        the architecture and platform GUID which can handle a restoration of the TrapContextKernelTransitionFrame
     //        kind.  Such service makes use of 1) above
-    //         
+    //
     // Note that if there is unwinder data for the transition frame whose interpretation will restore user mode
     // context, this is unnecessary for the kernel infrastructure service to provide.
     //
@@ -5822,7 +5822,7 @@ DECLARE_INTERFACE_(ISvcOSKernelObject, IUnknown)
 //
 // Interface  : ISvcOSKernelObjectAccessor
 //
-// Provided By: Various enumeration services (process enumeration services, thread enumeration services, 
+// Provided By: Various enumeration services (process enumeration services, thread enumeration services,
 //              module enumeration services, etc...)
 //
 #undef INTERFACE
@@ -5886,7 +5886,7 @@ DECLARE_INTERFACE_(ISvcOSPlatformInformation, IUnknown)
     // GetOSPlatform():
     //
     // Gets the high level infromation about the platform that the target is running on.  A component
-    // which runs on a platform that is not described by SvcOSPlatform may return SvcOSPlatUnknown. 
+    // which runs on a platform that is not described by SvcOSPlatform may return SvcOSPlatUnknown.
     //
     STDMETHOD(GetOSPlatform)(
         THIS_
@@ -6014,7 +6014,7 @@ DECLARE_INTERFACE_(ISvcDiagnosticLoggingXmlPassthrough, IUnknown)
 
     // LogXml():
     //
-    // Forwards an existing XML status/log message to a diagnostic logging sink.  What the host does with the log 
+    // Forwards an existing XML status/log message to a diagnostic logging sink.  What the host does with the log
     // message is entirely up to it.
     //
     STDMETHOD(LogXml)(
@@ -6059,7 +6059,7 @@ DECLARE_INTERFACE_(ISvcDiagnosticLoggableControl, IUnknown)
 
 //
 // @Q: How do the Flags from ReadPhysical* propagate into this world.  Current APIs allow you
-//    to request what mapping Mm provides for the physical read (regular cached, uncached, or 
+//    to request what mapping Mm provides for the physical read (regular cached, uncached, or
 //    write combined)
 //
 // @PA: This is likely to be one of the following:
@@ -6108,9 +6108,9 @@ DECLARE_INTERFACE_(ISvcMemoryAccess, IUnknown)
     STDMETHOD(ReadMemory)(
         THIS_
         _In_opt_ ISvcAddressContext* AddressContext,
-        _In_ ULONG64 Offset,  
-        _Out_writes_to_(BufferSize, *BytesRead) PVOID Buffer,  
-        _In_ ULONG64 BufferSize, 
+        _In_ ULONG64 Offset,
+        _Out_writes_to_(BufferSize, *BytesRead) PVOID Buffer,
+        _In_ ULONG64 BufferSize,
         _Out_ PULONG64 BytesRead
         ) PURE;
 
@@ -6125,7 +6125,7 @@ DECLARE_INTERFACE_(ISvcMemoryAccess, IUnknown)
     //
     STDMETHOD(WriteMemory)(
         THIS_
-        _In_opt_ ISvcAddressContext* AddressContext,   
+        _In_opt_ ISvcAddressContext* AddressContext,
         _In_ ULONG64 Offset,
         _In_reads_bytes_(BufferSize) PVOID Buffer,
         _In_ ULONG64 BufferSize,
@@ -6168,10 +6168,10 @@ DECLARE_INTERFACE_(ISvcMemoryAccessCacheControl, IUnknown)
     STDMETHOD(ReadMemoryCacheControl)(
         THIS_
         _In_opt_ ISvcAddressContext* AddressContext,
-        _In_ ULONG64 Offset,  
+        _In_ ULONG64 Offset,
         _In_ MemoryAccessCacheControl CacheControl,
-        _Out_writes_to_(BufferSize, *BytesRead) PVOID Buffer,  
-        _In_ ULONG64 BufferSize, 
+        _Out_writes_to_(BufferSize, *BytesRead) PVOID Buffer,
+        _In_ ULONG64 BufferSize,
         _Out_ PULONG64 BytesRead
         ) PURE;
 
@@ -6181,7 +6181,7 @@ DECLARE_INTERFACE_(ISvcMemoryAccessCacheControl, IUnknown)
     //
     STDMETHOD(WriteMemoryCacheControl)(
         THIS_
-        _In_opt_ ISvcAddressContext* AddressContext,   
+        _In_opt_ ISvcAddressContext* AddressContext,
         _In_ ULONG64 Offset,
         _In_ MemoryAccessCacheControl CacheControl,
         _In_reads_bytes_(BufferSize) PVOID Buffer,
@@ -6361,7 +6361,7 @@ DECLARE_INTERFACE_(ISvcMemoryTranslation, IUnknown)
     //
     // If there is a "translation entry" (e.g.: PTE) for the given address, it is returned in the 'TranslationEntry'
     // output argument.  If not, such is set to zero at the exit of the method.
-    // 
+    //
     STDMETHOD(TranslateAddress)(
         THIS_
         _In_ ISvcAddressContext* addressContext,
@@ -6391,19 +6391,19 @@ DECLARE_INTERFACE_(ISvcIoSpaceEnumeration, IUnknown)
     // ISvcIoSpaceEnumeration
 
     // FindIoSpace():
-    // 
+    //
     // Acquires a reference to an I/O space for use reading/writing the I/O space.
     //
     STDMETHOD(FindIoSpace)(
         THIS_
-        _In_opt_ ULONG *pInterface, 
-        _In_opt_ ULONG *pBus, 
+        _In_opt_ ULONG *pInterface,
+        _In_opt_ ULONG *pBus,
         _In_opt_ ULONG *pAddressSpace,
         _COM_Outptr_ ISvcIoSpace **ppIoSpace) PURE;
 
     //
     // @TODO: There is limited use of this right now (mostly for accessing port I/O on x86/x64 KD or accessing
-    //        special VM data), so there isn't an explicit "enumeration of I/O spaces" yet provided here.  
+    //        special VM data), so there isn't an explicit "enumeration of I/O spaces" yet provided here.
     //
 };
 
@@ -6418,7 +6418,7 @@ DECLARE_INTERFACE_(ISvcIoSpace, IUnknown)
 {
     // GetInterface():
     //
-    // Specifies the interface type of the I/O bus. This output may take values in the INTERFACE_TYPE 
+    // Specifies the interface type of the I/O bus. This output may take values in the INTERFACE_TYPE
     // enumeration defined in wdm.h.
     //
     // If this is not relevant, E_NOT_SET is returned.
@@ -6429,7 +6429,7 @@ DECLARE_INTERFACE_(ISvcIoSpace, IUnknown)
 
     // GetBus():
     //
-    // Specifies the system-assigned number of the bus. This is usually zero, unless the system has more than one 
+    // Specifies the system-assigned number of the bus. This is usually zero, unless the system has more than one
     // bus of the same interface type.
     //
     // If this is not relevant, E_NOT_SET is returned.
@@ -6527,7 +6527,7 @@ DECLARE_INTERFACE_(ISvcProcessEnumerator, IUnknown)
 //
 // Interface  : ISvcProcessEnumeration
 //
-// Provided By: 
+// Provided By:
 //
 //
 #undef INTERFACE
@@ -6561,7 +6561,7 @@ DECLARE_INTERFACE_(ISvcProcessEnumeration, IUnknown)
 };
 
 // Interface  : ISvcConnectableProcess
-// 
+//
 // Provided By:
 //
 #undef INTERFACE
@@ -6569,11 +6569,11 @@ DECLARE_INTERFACE_(ISvcProcessEnumeration, IUnknown)
 DECLARE_INTERFACE_(ISvcConnectableProcess, IUnknown)
 {
     //*************************************************
-    // ISvcConnectableProcess: 
+    // ISvcConnectableProcess:
     //
 
     // GetExecutablePath()
-    // 
+    //
     // Gets the full path to the process executable.
     //
     STDMETHOD(GetExecutablePath)(
@@ -6718,7 +6718,7 @@ DECLARE_INTERFACE_(ISvcProcessConnector, IUnknown)
 //
 // Interface  : ISvcThread
 //
-// Provided By: 
+// Provided By:
 //
 // It is expected that any implementation of ISvcThread will successfully QI for ISvcExecutionUnit in order
 // to read thread context and provide other core attributes of something which can successfully "step"
@@ -6796,7 +6796,7 @@ DECLARE_INTERFACE_(ISvcThreadEnumerator, IUnknown)
 //
 // Interface  : ISvcThreadEnumeration
 //
-// Provided By: 
+// Provided By:
 //
 //
 #undef INTERFACE
@@ -6834,7 +6834,7 @@ DECLARE_INTERFACE_(ISvcThreadEnumeration, IUnknown)
 //
 // Interface  : ISvcThreadLocalStorageProvider
 //
-// Provided By: 
+// Provided By:
 //
 //
 #undef INTERFACE
@@ -6886,7 +6886,7 @@ DECLARE_INTERFACE_(ISvcAddressRangeEnumerator, IUnknown)
 //
 // Interface  : ISvcModule
 //
-// Provided By: 
+// Provided By:
 //
 #undef INTERFACE
 #define INTERFACE ISvcModule
@@ -7175,7 +7175,7 @@ DECLARE_INTERFACE_(ISvcModuleEnumerator, IUnknown)
 //
 // Interface  : ISvcModuleEnumeration
 //
-// Provided By: 
+// Provided By:
 //
 //
 #undef INTERFACE
@@ -7253,7 +7253,7 @@ DECLARE_INTERFACE_(ISvcPrimaryModules, IUnknown)
 //
 // Interface  : ISvcModuleIndexProvider
 //
-// Provided By: 
+// Provided By:
 //
 //
 #undef INTERFACE
@@ -7279,7 +7279,7 @@ DECLARE_INTERFACE_(ISvcModuleIndexProvider, IUnknown)
 //
 // Interface  : ISourceCodeDownloadUrlLinkProvider
 //
-// Provider By: 
+// Provider By:
 //
 //
 #undef INTERFACE
@@ -7297,13 +7297,13 @@ DECLARE_INTERFACE_(ISourceCodeDownloadUrlLinkProvider, IUnknown)
     // where the source file might be found. It is the responsibility of
     // the caller to determine exactly where the source file is located
     // (by trying to download the file from the provided url list).
-    // 
+    //
     // The returned list is a one dimentional SAFEARRAY where
     // the type of the elements is VT_BSTR or VT_VARIANT of type VT_BSTR
     // The URLs can be "full" URL - something like "http://...." or "https://www....",
     // or can be a "partial/suffix" URL - something like name1/name2/name3, and the debugger will
     // build the final "full" URL by adding the suffix to a URL.
-    // 
+    //
     // The method receives the following parameters:
     // - sourceCodeFileSpec - The file spacification of the file to be downloade (for ex:shell\osshell\accesory\notepad\notepad.cpp)
     //                        The separator may be '\' or '/' character
@@ -7323,7 +7323,7 @@ DECLARE_INTERFACE_(ISourceCodeDownloadUrlLinkProvider, IUnknown)
 //
 // Interface  : IClrDacAndSosProvider
 //
-// Provider By: 
+// Provider By:
 //
 //
 #undef INTERFACE
@@ -7494,7 +7494,7 @@ DECLARE_INTERFACE_(ISvcContextTranslation, IUnknown)
 DECLARE_INTERFACE_(ISvcActiveExceptions, IUnknown)
 {
     // GetLastExceptionEvent()
-    // 
+    //
     // Gets the last exception event for a particular process.  For a post-mortem target, this is often
     // the "reason" for a snapshot.  Such exceptional event is represented by an ISvcExceptionInformation
     // interface but may represent a Win32 exception, a Linux signal, or something else entirely.
@@ -7508,13 +7508,13 @@ DECLARE_INTERFACE_(ISvcActiveExceptions, IUnknown)
         ) PURE;
 
     // GetActiveExceptionEvent():
-    // 
+    //
     // Gets the active exception event for a particular execution unit.  As with GetLastExceptionEvent,
     // such exceptional event is represented by an ISvcExceptionInformation interface but may represent
     // a Win32 exception, a Linux signal, or something else entirely.
     //
     // If there is no "active exception event", E_NOT_SET may be returned.
-    // 
+    //
     STDMETHOD(GetActiveExceptionEvent)(
         THIS_
         _In_ ISvcExecutionUnit *pExecutionUnit,
@@ -7540,7 +7540,7 @@ enum SvcExceptionKind
 
     // Exception is a Linux signal.  ISvcLinuxSignalInformation is supported.
     //
-    // Canonical data representation (optionally provided) is a 64-bit siginfo_t 
+    // Canonical data representation (optionally provided) is a 64-bit siginfo_t
     //
     SvcExceptionLinuxSignal,
 
@@ -7621,7 +7621,7 @@ DECLARE_INTERFACE_(ISvcExceptionInformation, IUnknown)
     // record is defined, GetDataRecordSize will return 0 and this method will return E_NOTIMPL.
     //
     // If there is no available data associated, E_NOTIMPL is returned.  It is entirely optional for a given
-    // implementation to provide this.  Each given exception kind has a specific interface 
+    // implementation to provide this.  Each given exception kind has a specific interface
     // (e.g.: ISvcLinuxSignalInformation) which provides more detailed information based on potentially parsing the
     // given data record.  The vast majority of consumers should rely on those interfaces and not try to get
     // the underlying data record that a service provider understands.
@@ -7637,7 +7637,7 @@ DECLARE_INTERFACE_(ISvcExceptionInformation, IUnknown)
 //
 // Interface  : ISvcExceptionControl
 //
-// Provided By: 
+// Provided By:
 //
 // Notes:
 //
@@ -7650,7 +7650,7 @@ DECLARE_INTERFACE_(ISvcExceptionInformation, IUnknown)
 #define INTERFACE ISvcExceptionControl
 DECLARE_INTERFACE_(ISvcExceptionControl, IUnknown)
 {
-    // IsFirstChance(): 
+    // IsFirstChance():
     //
     // Indicates whether this exception is the first or second chance.  If the target cannot make a
     // determination of first/second chance, E_NOTIMPL should be returned.
@@ -7692,7 +7692,7 @@ DECLARE_INTERFACE_(ISvcExceptionControl, IUnknown)
     // by the debugger.  Flags are currently reserved and should be set to zero.
     //
     // If this exception is a form that CANNOT be passed to the target, E_ILLEGAL_METHOD_CALL should
-    // be returned.  If the target is incapable of handling exceptions without passing them on, 
+    // be returned.  If the target is incapable of handling exceptions without passing them on,
     // E_NOTIMPL should be returned.
     //
     // NOTE: The excepiton is not *ACTUALLY* handled and dismissed until the target resumes execution via
@@ -7805,7 +7805,7 @@ DECLARE_INTERFACE_(ISvcWindowsKdInfrastructure, IUnknown)
     //
     // FindKdVersionBlock():
     //
-    // Finds the KD version block and returns its address.  If the version block is not located within 
+    // Finds the KD version block and returns its address.  If the version block is not located within
     // the address space of the debug source, this may fail.  In such cases, GetKdVersionBlock may be called.
     //
     STDMETHOD(FindKdVersionBlock)(
@@ -7939,7 +7939,7 @@ DECLARE_INTERFACE_(ISvcWindowsExceptionTranslation, IUnknown)
 //
 // Notes:
 //     - All implementations of ISvcWindowsBugCheckInformation must also implement ISvcExceptionInformation
-// 
+//
 #undef INTERFACE
 #define INTERFACE ISvcWindowsBugCheckInformation
 DECLARE_INTERFACE_(ISvcWindowsBugCheckInformation, IUnknown)
@@ -7962,7 +7962,7 @@ DECLARE_INTERFACE_(ISvcWindowsBugCheckInformation, IUnknown)
         ) PURE;
 };
 
-// 
+//
 // Interface  : ISvcWindowsThreadInformation
 //
 // Provided By:
@@ -8001,11 +8001,11 @@ DECLARE_INTERFACE_(ISvcWindowsProcessInformation, IUnknown)
 //
 // Interface  : ISvcLinuxSignalInformation
 //
-// Provided By: 
+// Provided By:
 //
 // Notes:
 //     - All implementations of ISvcLinuxSignalInformation must also implement ISvcExceptionInformation
-//  
+//
 #undef INTERFACE
 #define INTERFACE ISvcLinuxSignalInformation
 DECLARE_INTERFACE_(ISvcLinuxSignalInformation, IUnknown)
@@ -8153,7 +8153,7 @@ enum SvcSymbolTypeKind
     //
     // The base type of an array as returned by GetBaseType() is the type of each element
     // of the array.
-    // 
+    //
     SvcSymbolTypeArray,
 
     // The type is a function
@@ -8275,7 +8275,7 @@ enum ArrayDimensionFlags
     SvcArrayStrideIsComputedByNextRank     = 0x00000040,
     SvcArrayStrideIsComputedByPreviousRank = 0x00000080,
     SvcArrayStrideIsComputed               = 0x000000C0
-}; 
+};
 
 // SvcSymbolArrayDimension:
 //
@@ -8301,7 +8301,7 @@ struct SvcSymbolArrayDimension
 
 // SvcSymbolSearchOptions:
 //
-// Describes search options for symbol enumeration.  This directly corresponds to definitions in the 
+// Describes search options for symbol enumeration.  This directly corresponds to definitions in the
 // data model.
 //
 enum SvcSymbolSearchOptions
@@ -8357,8 +8357,8 @@ DECLARE_INTERFACE_(ISvcSymbolChildren, IUnknown)
 //
 // Interface   : ISvcSymbolChildrenByRegEx
 //
-// Any symbol which supports the enumeration of children by regular expression supports this interface.  
-// Simple symbol providers which only do basic address -> name and name -> address mapping need not implement 
+// Any symbol which supports the enumeration of children by regular expression supports this interface.
+// Simple symbol providers which only do basic address -> name and name -> address mapping need not implement
 // this interface.
 //
 // This interface should be considered *OPTIONAL* -- even in the presence of ISvcSymbolChildren.  It is intended
@@ -8564,7 +8564,7 @@ enum SvcSymbolCachePreventionFlags
 // Any symbol which has an address mapping (e.g.: code symbols, functions, lexical blocks, etc...) which
 // can be described by one or more ranges implements this interface.
 //
-// This interface does *NOT* represent locations for things like variables which describe enregistered or 
+// This interface does *NOT* represent locations for things like variables which describe enregistered or
 // register relative locations.
 //
 #undef INTERFACE
@@ -8576,7 +8576,7 @@ DECLARE_INTERFACE_(ISvcSymbolAddressMapping, IUnknown)
     // Gets the base address range of this symbol.  If the symbol is defined by a **SINGLE** linear address
     // range, this method *MUST* return such address range and S_OK.  If the symbol is defined by **MULTIPLE**
     // linear address ranges (e.g.: a BBT'd or otherwise such optimized function), this method *MUST* return
-    // the base address range and S_FALSE.  
+    // the base address range and S_FALSE.
     //
     // In either case, EnumerateAddressRanges() includes **ALL** address ranges of the symbol.
     //
@@ -8587,7 +8587,7 @@ DECLARE_INTERFACE_(ISvcSymbolAddressMapping, IUnknown)
 
     // EnumerateAddressRanges():
     //
-    // Enumerates the set of address ranges which define this symbol. 
+    // Enumerates the set of address ranges which define this symbol.
     //
     STDMETHOD(EnumerateAddressRanges)(
         THIS_
@@ -8652,14 +8652,14 @@ DECLARE_INTERFACE_(ISvcSymbolInfo, IUnknown)
 
 //
 // Interface   : ISvcSymbolMultipleLocations
-// 
+//
 // This is used to enumerate the locations that describe a symbol, when they support being described in terms
 // of multiple locations, such as enregistered structs in DWARF.
 //
-// When this interface is supported and there is, in fact, a symbol with more than one location, said symbol's 
+// When this interface is supported and there is, in fact, a symbol with more than one location, said symbol's
 // ISvcSymbolInfo::GetLocation returns a location of kind SvcSymbolLocationMultipleLocations.
-// 
-// All of a symbol's locations form a contiguous memory region, in the sense that each individual location is at some offset 
+//
+// All of a symbol's locations form a contiguous memory region, in the sense that each individual location is at some offset
 // within the whole. Note that gaps within this region are allowed.
 //
 #undef INTERFACE
@@ -8735,7 +8735,7 @@ DECLARE_INTERFACE_(ISvcSymbolDiscriminatorValuesEnumerator, IUnknown)
     STDMETHOD(Reset)(
         THIS
         ) PURE;
-    
+
     // GetNext():
     //
     // Gets the next range of discriminator values in the enumerator.  Note that this has identical semantics
@@ -8789,7 +8789,7 @@ DECLARE_INTERFACE_(ISvcSymbolVariantInfo, IUnknown)
 
     // GetDiscriminatorValues():
     //
-    // Indicates the set of discriminator values for which this field/member is valid.  This can return one of 
+    // Indicates the set of discriminator values for which this field/member is valid.  This can return one of
     // several things:
     //
     // - Two variants that are both empty: The discriminator is a default discriminator (used if no other discriminator
@@ -8812,7 +8812,7 @@ DECLARE_INTERFACE_(ISvcSymbolVariantInfo, IUnknown)
     // EnumerateDiscriminatorValues():
     //
     // Enumerates all discriminator values for which this field/member is valid.  While this function always works,
-    // it only NEEDS to be used if GetDiscriminatorValues returns S_FALSE as an indication that there are 
+    // it only NEEDS to be used if GetDiscriminatorValues returns S_FALSE as an indication that there are
     // disjoint values.
     //
     STDMETHOD(EnumerateDiscriminatorValues)(
@@ -9122,7 +9122,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetSimpleNameResolution, IUnknown)
     // FindSymbolByOffset():
     //
     // Finds symbolic information for a given offset.  If the "exactMatchOnly" parameter is true, this will only return
-    // a symbol which is exactly at the offset given.  If the "exactMatchOnly" parameter is false, this will return the 
+    // a symbol which is exactly at the offset given.  If the "exactMatchOnly" parameter is false, this will return the
     // closest symbol before the given offset.  If no such symbol can be found, the method fails.
     //
     // Note that if a given symbol (e.g.: a function) has multiple disjoint address ranges and one of those address
@@ -9155,7 +9155,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetSimpleSourceLineResolution, IUnknown)
     // given line, this will return the first/best (depending on the underlying provider) and return
     // S_FALSE as an indication that a more in-depth query with more advanced interfaces are required.
     //
-    // If there are no mappings for the given line but are for later lines in source, this will return 
+    // If there are no mappings for the given line but are for later lines in source, this will return
     // the nearest matching source line (after the given one).  The actual mapped line of the offset
     // will be optionally returned to the caller.
     //
@@ -9166,7 +9166,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetSimpleSourceLineResolution, IUnknown)
     //
     //     - The file name.  If the file name is not unique in the symbolic information, this method will
     //       fail and requires an explicit path.
-    //     
+    //
     // The actual name recorded in symbols (potentially a full path) can also optionally be returned in
     // actualSourceFileName.
     //
@@ -9212,7 +9212,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetSimpleSourceLineResolution, IUnknown)
 //
 // Interface   : ISvcSymbolSetSimpleInlineSourceLineResolution
 //
-// Represents a "simple interface" around the mapping of addresses to lines of code within the image 
+// Represents a "simple interface" around the mapping of addresses to lines of code within the image
 // for inlined locations.
 //
 // This is an optional interface for symbol sets to implement.  A symbol set which handles inlined frames
@@ -9244,7 +9244,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetSimpleInlineSourceLineResolution, IUnknown)
         ) PURE;
 };
 
-// SvcHashAlgorithm: 
+// SvcHashAlgorithm:
 //
 // Defines the hash algorithm for source files (among other things)
 //
@@ -9333,7 +9333,7 @@ DECLARE_INTERFACE_(ISvcSourceFileEnumerator, IUnknown)
     STDMETHOD(Reset)(
         THIS
         ) PURE;
-    
+
     STDMETHOD(GetNext)(
         THIS_
         _COM_Outptr_ ISvcSourceFile **sourceFile
@@ -9343,11 +9343,11 @@ DECLARE_INTERFACE_(ISvcSourceFileEnumerator, IUnknown)
 //
 // Interface   : ISvcSymbolSetSimpleSourceFileInformation
 //
-// Represents a "simple interface" around the enumeration of source files that contribute to a particular 
+// Represents a "simple interface" around the enumeration of source files that contribute to a particular
 // binary and their association to compilation units / compilands.
 //
 // This is an optional interface for symbol sets to implement.
-// 
+//
 #undef INTERFACE
 #define INTERFACE ISvcSymbolSetSimpleSourceFileInformation
 DECLARE_INTERFACE_(ISvcSymbolSetSimpleSourceFileInformation, IUnknown)
@@ -9396,7 +9396,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetEnumerator, IUnknown)
 //
 // Interface   : ISvcSymbolSetScope
 //
-// Represents a lexical scope within code.  A scope can implement ISvcSymbolChildren to allow 
+// Represents a lexical scope within code.  A scope can implement ISvcSymbolChildren to allow
 // query of other children underneath the scope.
 //
 #undef INTERFACE
@@ -9406,7 +9406,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetScope, IUnknown)
     // EnumerateArguments():
     //
     // If the scope is a function scope (or is a lexical sub-scope of a function), this enumerates
-    // the arguments of the function.  
+    // the arguments of the function.
     //
     // This will fail for a scope for which arguments are inappropriate.
     //
@@ -9417,7 +9417,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetScope, IUnknown)
 
     // EnumerateLocals():
     //
-    // Enumerates the locals within the scope.  
+    // Enumerates the locals within the scope.
     //
     STDMETHOD(EnumerateLocals)(
         THIS_
@@ -9458,7 +9458,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetScopeResolution, IUnknown)
 {
     // GetGlobalScope():
     //
-    // Returns a scope representing the global scope of the module the symbol set represents.  This 
+    // Returns a scope representing the global scope of the module the symbol set represents.  This
     // may be an aggregation of other symbols one could discover through fully enumerating the symbol
     // set.
     //
@@ -9545,7 +9545,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetTypeDerivations, IUnknown)
     // like at a linguistic level.  The only mandatory piece of information to this method is the number of
     // dimensions of the array.  Languages for which array types are otherwise dynamic (e.g.: C#) require only
     // this bit of information.  Other languages may require an explicit specification of the sizes and/or lower
-    // bounds of dimensions. 
+    // bounds of dimensions.
     //
     // There is no guarantee that this method will succeed.
     //
@@ -9660,7 +9660,7 @@ DECLARE_INTERFACE_(ISvcSymbolSetInlineFrameResolution, IUnknown)
     // {
     //     noninlined_baz();
     //     inlined_bat();
-    // } 
+    // }
     //
     // foo()
     // {
@@ -9687,13 +9687,13 @@ DECLARE_INTERFACE_(ISvcSymbolSetInlineFrameResolution, IUnknown)
 //
 // Interface   : ISvcSymbolSet
 //
-// Provided By : 
+// Provided By :
 //
 // Represents an abstract set of symbols.  This may represent all symbols in a PDB.  It may represent the
 // "export symbols" of an image.  It may represent a subset of the symbols in a PDB.  There is no requirement
 // that a symbol set represent a single "file".  It may represent, in aggregate, multiple sources of symbolic
 // information for a given set of functionality (often represented by an image).
-// 
+//
 #undef INTERFACE
 #define INTERFACE ISvcSymbolSet
 DECLARE_INTERFACE_(ISvcSymbolSet, IUnknown)
@@ -9708,7 +9708,7 @@ DECLARE_INTERFACE_(ISvcSymbolSet, IUnknown)
         _In_ ULONG64 symbolId,
         _COM_Outptr_ ISvcSymbol **ppSymbol
         ) PURE;
-	
+
     //
     // EnumerateAllSymbols():
     //
@@ -9732,13 +9732,13 @@ DEFINE_GUID(DEBUG_SYMBOLSETCAPS_GENERAL, 0x591037bc, 0x1c2c, 0x4a0e, 0x87, 0xea,
 
 enum SvcSymbolSetGeneralCaps
 {
-    // SvcSymbolSetGeneralCapPassByValueStructLocations: 
-    // 
+    // SvcSymbolSetGeneralCapPassByValueStructLocations:
+    //
     // Describes how the symbol set deals with the reporting of "pass-by-value" structs (or other UDTs
     // such as C++ classes).  The calling convention on some platforms (e.g.: Windows AMD64) requires that
     // any "pass-by-value" UDTs over an arbitrary size must be passed by reference.  Some formats (e.g.: PDB)
-    // put the language semantics (pass-by-value) in the debug info stating things like (the parameter 
-    // itself -- a size N UDT -- is passed in a register 'rcx') and rely on the debugger to implicitly 
+    // put the language semantics (pass-by-value) in the debug info stating things like (the parameter
+    // itself -- a size N UDT -- is passed in a register 'rcx') and rely on the debugger to implicitly
     // understand the calling convention means that the debugger must *INTERPRET* the debug information not as
     // it is written into the format but as a reference instead (e.g.: it's not the parameter itself passed
     // in 'rcx'; rather the address of it).
@@ -9746,7 +9746,7 @@ enum SvcSymbolSetGeneralCaps
     // This, unfortunately, makes it impossible to express the notion of an *ACTUAL* passed-by-value large-struct
     // (e.g.: on the stack or split into multiple registers) because one cannot differentiate between cases
     // where the meaning is "really pass by value" and "should add an indirection to the debug info as written".
-    // 
+    //
     // The value of this capability is a boolean (expressed as a one-byte data value) which carries the following
     // meaning:
     //
@@ -9755,7 +9755,7 @@ enum SvcSymbolSetGeneralCaps
     //
     //     false (zero)   : Do not always trust the debug information.  Alter the information to assume implicit
     //                      references for large structs.
-    // 
+    //
     // The default value here is *true*.  Callers must always assume the debug information is correct unless they
     // are told otherwise explicitly by this capability.
     //
@@ -9800,9 +9800,9 @@ DECLARE_INTERFACE_(ISvcSymbolSetCapabilities, IUnknown)
 // Defines a mechanism by which an abstract "symbol set" is located for a given module.  An abstract "symbol set"
 // is described by an ISvcSymbolSet.  While a "symbol set" may refer to an arbitrary grouping of symbols, the set
 // returned from the LocateSymbolsForImage method represents the symbolic (debug) information for a given image
-// in some address space.  That symbol set may be backed by a PDB, the "export symbols" of the image, some side 
+// in some address space.  That symbol set may be backed by a PDB, the "export symbols" of the image, some side
 // description of the symbolic information, or simply be an abstraction materialized out of thin air.
-// 
+//
 #undef INTERFACE
 #define INTERFACE ISvcSymbolProvider
 DECLARE_INTERFACE_(ISvcSymbolProvider, IUnknown)
@@ -9811,7 +9811,7 @@ DECLARE_INTERFACE_(ISvcSymbolProvider, IUnknown)
     //
     // For a given image (identified by an ISvcModule), find the set of symbolic information available for the image
     // and return a symbol set.
-    // 
+    //
     // To provide a better user experience around potentially long running operations, a provider should check:
     //    * if the client specified specific symbols to skip (before downloading)
     //    * if the client attempted to cancel the request (periodically)
@@ -9827,6 +9827,8 @@ DECLARE_INTERFACE_(ISvcSymbolProvider, IUnknown)
         ) PURE;
 };
 
+#define SVC_DEFAULTBASE_COMPUTE static_cast<ULONG64>(-1ll)
+
 //
 // Interface   : ISvcSymbolProvider2
 //
@@ -9840,23 +9842,32 @@ DECLARE_INTERFACE_(ISvcSymbolProvider2, ISvcSymbolProvider)
 {
     // OpenSymbols():
     //
-    // Manually opens symbols.  There should be an image parser in the service container which can parse the 
-    // symbol file (and optionally image file) and get requisite sections from it.  
+    // Manually opens symbols.  There should be an image parser in the service container which can parse the
+    // symbol file (and optionally image file) and get requisite sections from it.
     //
     // Note that if the symbols and image are separate and data is needed from the image file itself
     // (e.g.: export symbols or unwinder data), the image file should be passed; otherwise, any such data will
     // be missing from the provided symbol set.
     //
-    // The base of the image should be provided to adjust any RVAs (offsets) to actual addresses.  If the imageBase
-    // is provided as zero, any returned addresses from the symbol set will be RVAs.  The 'pImageBaseContext' is
-    // the address context in which that imageBase is valid.
+    // The base of the image (where the loader actually put the image and where any module enumerator will enumerate
+    // the image) should be provided in the event that any symbol expressions require an actual memory read to resolve
+    // instead of just returning RVAs.  The 'pImageBaseContext' is the address context in which that imageBase is valid.
+    // Note that many symbol providers expect that the definition of "base of image" here is the lowest virtual address
+    // at which any portion of the image is mapped into memory.  If the particular usage of symbols does not match
+    // that definition, the "default image base" may be provided; otherwise, it may be left as the expected
+    // SVC_DEFAULTBASE_COMPUTE.
+    //
+    // It is important to note that this method typically does absolutely no caching whatsoever.  Each call to this
+    // method will open the symbols anew.  Callers should not repeatedly make calls to OpenSymbols for the same
+    // set of symbols.
     //
     STDMETHOD(OpenSymbols)(
         THIS_
         _In_ ISvcDebugSourceFile *symbolFile,
         _In_opt_ ISvcDebugSourceFile *imageFile,
         _In_opt_ ISvcAddressContext *pImageBaseContext,
-        _In_ ULONG64 imageBase,
+        _In_ ULONG64 loadedImageBase,
+        _In_ ULONG64 defaultImageBase,
         _COM_Outptr_ ISvcSymbolSet **symbolSet
         ) PURE;
 };
@@ -9885,11 +9896,11 @@ DECLARE_INTERFACE_(ISvcJITSymbolProvider, IUnknown)
 {
     // LocateSymbolsForJITSegment
     //
-    // For a given address within an address context (often a process), find a symbol set representing 
+    // For a given address within an address context (often a process), find a symbol set representing
     // the JIT and (potentially) the module to which it belongs.
     //
     // If the JIT code is associated with a given loaded module (e.g.: an CLR assembly with IL code),
-    // the module will be returned and all RVA style offsets within the symbol set are relative to the 
+    // the module will be returned and all RVA style offsets within the symbol set are relative to the
     // base address of the given module.
     //
     // If the JIT code is *NOT* associated with a given loaded module (e.g.: JIT'ted script from a loaded
@@ -9905,7 +9916,7 @@ DECLARE_INTERFACE_(ISvcJITSymbolProvider, IUnknown)
         ) PURE;
 };
 
-// 
+//
 // Interface   : ISvcImageProvider
 //
 // Provided By :
@@ -9923,7 +9934,7 @@ DECLARE_INTERFACE_(ISvcImageProvider, IUnknown)
     // LocateImage():
     //
     // Locate the file for a given image within the target.
-    // 
+    //
     // Downloading large image files could be a long running (slow) operation. For such cases you may also need to check periodically
     // the ISvcUserOperationController::IsOperationCancelled.
     //
@@ -9980,7 +9991,7 @@ DECLARE_INTERFACE_(ISvcUserOperationController, IUnknown)
     // IsOperationCancelled():
     //
     // Used to check if the user requested operation cancellation
-    // 
+    //
     STDMETHOD_(BOOL, IsOperationCancelled)(
         THIS
         ) PURE;
@@ -9988,7 +9999,7 @@ DECLARE_INTERFACE_(ISvcUserOperationController, IUnknown)
     // IsSymbolDownloadDisabled():
     //
     // Used to check if downloading symbols for image is disabled
-    // 
+    //
     STDMETHOD_(BOOL, IsSymbolDownloadDisabled)(
         THIS_
         _In_ ISvcModule *image
@@ -10024,7 +10035,7 @@ DECLARE_INTERFACE_(ISvcNameDemangler, IUnknown)
     // the case that multiple demanglers will be aggregated in one container.
     //
     // NOTE: The source language is often unspecified and will be SvcSourceLanguageUnknown.  In addition, the
-    //       machine architecture is often unspecified and will be GUID_NULL.  
+    //       machine architecture is often unspecified and will be GUID_NULL.
     //
     //       These parameters are optional and provide hints to the demangler if present.
     //
@@ -10072,14 +10083,14 @@ enum SvcStackUnwindFlags
     StackUnwindSkippedFrames = 0x00000010,
 
     // On entry -- this flag should be *PRESERVED* from a prior unwind when unwinding the next frame
-    // On exit -- indicates that this particular frame was the result of unwinding an exception/signal frame.  
+    // On exit -- indicates that this particular frame was the result of unwinding an exception/signal frame.
     //
     // Callers to the unwinder should never set this flag themselves.  They should, however, preserve this
     // flag when unwinding a subseuqent frame.  It is entirely possible that the unwind from an exception/signal
     // frame yields a leaf function or other circumstance which would not be possible with a normal unwind.
     // Not preserving this flag across unwinds can cause premature termination of a stack unwind in some
     // circumstances.
-    // 
+    //
     StackUnwindFromExceptionOrSignalFrame = 0x00000020
 };
 
@@ -10114,12 +10125,12 @@ struct SVC_STACK_FRAME
     // On exit from unwind, if StackUnwindArchitectureSpecified is set, both fields must be valid.
     //
     // Normally, both of these will indicate the architecture of the machine.
-    // 
+    //
     ULONG FrameMachine;             // Indicates the architecture (IMAGE_FILE_MACHINE_*) of this frame
     ULONG UnwoundMachine;           // Indicates the architecture (IMAGE_FILE_MACHINE_*) of the unwound frame
 
     //*************************************************
-    // v3 Fields 
+    // v3 Fields
     //
 
     ULONG64 Parameters[4];          // Optional: parameters (StackUnwindParametersSpecified must be set)
@@ -10275,7 +10286,7 @@ DECLARE_INTERFACE_(ISvcStackFrameUnwind, IUnknown)
 //
 enum UnwinderTransitionKind
 {
-    // The given unwinder is not requesting a transition from the currently active stack unwinder. 
+    // The given unwinder is not requesting a transition from the currently active stack unwinder.
     UnwinderTransitionNone,
 
     // Indicates that the given unwinder would like control of stack unwinding.  The stack frame and register
@@ -10284,7 +10295,7 @@ enum UnwinderTransitionKind
     UnwinderTransitionAddFrame,
 
     // Indicates that the given unwinder would like control of stack unwinding.  The stack frame and register
-    // context may or may not have been adjusted.  The client should call the transitioned unwinder to get 
+    // context may or may not have been adjusted.  The client should call the transitioned unwinder to get
     // the next frame.  The stack frame/register context output arguments from the RequestsTransition call
     // should not be used as an independent stack frame.
     UnwinderTransitionUnwindFrame
@@ -10298,7 +10309,7 @@ enum UnwinderTransitionKind
 //
 // This allows a given unwind service to transition between two unwinders or stacks or otherwise inject
 // stack frames for a variety of purposes.
-// 
+//
 #undef INTERFACE
 #define INTERFACE ISvcStackFrameUnwinderTransition
 DECLARE_INTERFACE_(ISvcStackFrameUnwinderTransition, IUnknown)
@@ -10312,7 +10323,7 @@ DECLARE_INTERFACE_(ISvcStackFrameUnwinderTransition, IUnknown)
     // control of the unwind with specific behaviors as indicated by the 'pTransitionKind' argument.
     //
     // If multiple stack unwinders in an aggregate container indicate they want to take over unwinding, the request
-    // is passed to the highest priority unwinder.  Such priority is given by linear insertion order into the 
+    // is passed to the highest priority unwinder.  Such priority is given by linear insertion order into the
     // container.
     //
     STDMETHOD(RequestsEntryTransition)(
@@ -10343,14 +10354,14 @@ DECLARE_INTERFACE_(ISvcStackFrameUnwinderTransition, IUnknown)
     //
     // Given the information that would normally be passed to UnwindFrame after the *CURRENT* unwinder has
     // reached the end of the stack, this asks an alternate unwinder if it would like to "take over" unwinding
-    // at this particular point. 
+    // at this particular point.
     //
     // If the callee returns UnwinderTransitionAddFrame, the adjusted stack frame and context record are presented
     // as a new stack frame *BEFORE* unwinding.  If the callee returns UnwinderTransitionUnwindFrame, the returned
     // register context is unwound as the next entry in the stack.
     //
-    // If multiple stack unwinders in an aggregate container indicate that they want a terminal transition, the 
-    // request is passed to the unwinder which returns a register context that has a stack pointer closest to 
+    // If multiple stack unwinders in an aggregate container indicate that they want a terminal transition, the
+    // request is passed to the unwinder which returns a register context that has a stack pointer closest to
     // the stack pointer of the unwinder which terminated.
     //
     STDMETHOD(RequestsTerminalTransition)(
@@ -10359,7 +10370,7 @@ DECLARE_INTERFACE_(ISvcStackFrameUnwinderTransition, IUnknown)
         _Inout_ ISvcRegisterContext *pRegisterContext,
         _Out_ UnwinderTransitionKind *pTransitionKind
         ) PURE;
-	
+
 };
 
 // ISvcStackFrameInjection:
@@ -10407,7 +10418,7 @@ enum StackProviderFrameKind
     // "underlying" frame (the non-inline one).
     StackProviderFrameInline,
 
-    // Indicates that the frame is a partial physical frame.  The frame interface must QI for 
+    // Indicates that the frame is a partial physical frame.  The frame interface must QI for
     // ISvcStackProviderPartialPhysicalFrame and must be able to return, at minimum, an instruction pointer.
     // Other values are optional.
     StackProviderFramePartialPhysical,
@@ -10434,7 +10445,7 @@ DECLARE_INTERFACE_(ISvcStackProviderFrame, IUnknown)
 };
 
 
-#undef INTERFACE 
+#undef INTERFACE
 #define INTERFACE ISvcStackProviderPhysicalFrame
 DECLARE_INTERFACE_(ISvcStackProviderPhysicalFrame, IUnknown)
 {
@@ -10468,7 +10479,7 @@ DECLARE_INTERFACE_(ISvcStackProviderPartialPhysicalFrame, IUnknown)
     // GetStackPointer():
     //
     // Gets the stack pointer for this partial physical frame.  This may return E_NOT_SET indicating that there
-    // is no available stack pointer value for this partial frame.  All users of a partial physical frame must 
+    // is no available stack pointer value for this partial frame.  All users of a partial physical frame must
     // be able to deal with such.
     //
     STDMETHOD(GetStackPointer)(
@@ -10547,7 +10558,7 @@ DECLARE_INTERFACE_(ISvcStackProviderFrameAttributes, IUnknown)
     // Gets the "source association" for this stack frame (e.g.: the source file, line number, and column
     // number).  This is an optional attribute.  It is legal for any implementation to E_NOTIMPL this.
     // The line number and column number are optional (albeit a column cannot be provided without a line).
-    // A client may legally return a value of zero for either of these indicating that it is not available or not 
+    // A client may legally return a value of zero for either of these indicating that it is not available or not
     // relevant (e.g.: compiler generated code which does not necessarily map to a line of code may legally
     // return 0 for the source line).
     //
@@ -10561,7 +10572,7 @@ DECLARE_INTERFACE_(ISvcStackProviderFrameAttributes, IUnknown)
 
 // ISvcStackProviderFrameSetEnumerator:
 //
-// Defines a set of stack frames which can be linearly enumerated from a "top" to a "bottom" 
+// Defines a set of stack frames which can be linearly enumerated from a "top" to a "bottom"
 // (typically retrieved from a stack walk).  The set of frames can, however, represent some portion of a physical
 // stack or a logical call chain which doesn't necessarily relate to a physical stack in memory.
 //
@@ -10656,7 +10667,7 @@ enum ServiceImageByteMapping
 {
     SvcImageByteMappingUnmapped,                // Not valid
     SvcImageByteMappingZero,                    // Zero bytes
-    SvcImageByteMappingUninitialized,           // Uninitialized 
+    SvcImageByteMappingUninitialized,           // Uninitialized
 };
 
 // ISvcImageFileViewRegion:
@@ -10697,7 +10708,7 @@ DECLARE_INTERFACE_(ISvcImageFileViewRegion, IUnknown)
     // with the memory view (it is not mapped by a loader), S_FALSE is returned with a 0/0 mapping and
     // pExtraByteMapping filled in.
     //
-    // By default, this will return a singular mapping (of the start of the file view region).  
+    // By default, this will return a singular mapping (of the start of the file view region).
     //
     STDMETHOD(GetMemoryViewAssociation)(
         _Out_ ULONG64 *pMemoryViewOffset,
@@ -10768,7 +10779,7 @@ DECLARE_INTERFACE_(ISvcImageMemoryViewRegion, IUnknown)
 
     // IsReadable():
     //
-    // Indicates whether this region of the image is mapped as readable.  If the implementation cannot make a 
+    // Indicates whether this region of the image is mapped as readable.  If the implementation cannot make a
     // determination of whether the range is readable or not, E_NOTIMPL may legally be returned.
     //
     STDMETHOD(IsReadable)(
@@ -10778,7 +10789,7 @@ DECLARE_INTERFACE_(ISvcImageMemoryViewRegion, IUnknown)
 
     // IsWriteable():
     //
-    // Indicates whether this region of the image is mapped as writeable.  If the implementation cannot make a 
+    // Indicates whether this region of the image is mapped as writeable.  If the implementation cannot make a
     // determination of whether the range is writeable or not, E_NOTIMPL may legally be returned.
     //
     STDMETHOD(IsWriteable)(
@@ -10788,7 +10799,7 @@ DECLARE_INTERFACE_(ISvcImageMemoryViewRegion, IUnknown)
 
     // IsExecutable():
     //
-    // Indicates whether this region of the image is mapped as executable.  If the implementation cannot make a 
+    // Indicates whether this region of the image is mapped as executable.  If the implementation cannot make a
     // determination of whether the range is executable or not, E_NOTIMPL may legally be returned.
     //
     STDMETHOD(IsExecutable)(
@@ -10861,7 +10872,7 @@ DECLARE_INTERFACE_(ISvcImageParser, IUnknown)
     // GetImageArchitecture():
     //
     // Gets the architecture of the image.  If the image is a multi-architecture image (for any definition of
-    // such -- whether a "fat binary", a "CHPE image", etc..., this method will return S_FALSE to indicate 
+    // such -- whether a "fat binary", a "CHPE image", etc..., this method will return S_FALSE to indicate
     // that it returned the *DEFAULT ARCHITECTURE* but that another "view" of the binary is available.
     //
     STDMETHOD(GetImageArchitecture)(
@@ -10958,7 +10969,7 @@ DECLARE_INTERFACE_(ISvcImageParser, IUnknown)
     // An offset out of bounds of the file view will return E_BOUNDS.  An offset which does not map to
     // anything in the memory view (it is only in the file and not put in memory by the loader) will
     // return E_NOT_SET.
-    // 
+    //
     // If a mapping is returned, the number of contiguous bytes of the mapping can optionally be returned.
     //
     STDMETHOD(TranslateFileViewOffsetToMemoryViewOffset)(
@@ -11057,7 +11068,7 @@ DECLARE_INTERFACE_(ISvcImageParser2, ISvcImageParser)
 };
 
 // VersionKind:
-// 
+//
 enum VersionKind
 {
     // Leave it to the provider to interpret what kind of version information to return.
@@ -11082,7 +11093,7 @@ enum VersionKind
 DEFINE_GUID(DEBUG_VERSIONIDENTIFIER_PACKAGENAME, 0xf779edf9, 0x2f05, 0x4e9d, 0xa3, 0xde, 0x47, 0x9b, 0xd2, 0xfc, 0xa1, 0xac);
 
 // DEBUG_VERSIONIDENTIFIER_COPYRIGHT:
-// 
+//
 // Identifies the copyright information associated with the image.
 //
 // GUID: {00C9CB55-2134-455c-BD7A-A106A9F71884}
@@ -11098,7 +11109,7 @@ DEFINE_GUID(DEBUG_VERSIONIDENTIFIER_COPYRIGHT, 0xc9cb55, 0x2134, 0x455c, 0xbd, 0
 DEFINE_GUID(DEBUG_VERSIONIDENTIFIER_DISTRIBUTION, 0x3a51be14, 0x3ad5, 0x481f, 0x87, 0x1d, 0x6f, 0x37, 0xcf, 0xfe, 0xeb, 0xa3);
 
 // DEBUG_VERSIONIDENTIFIER_REPOSITORY:
-// 
+//
 // Identifies the repository associated with the image.
 //
 // GUID: {2B32B734-ABC0-413f-973A-C2F114C8B40B}
@@ -11108,7 +11119,7 @@ DEFINE_GUID(DEBUG_VERSIONIDENTIFIER_REPOSITORY, 0x2b32b734, 0xabc0, 0x413f, 0x97
 // DEBUG_VERSIONIDENTIFIER_BRANCH:
 //
 // Identifies the branch associated with the image.
-// 
+//
 // GUID: {A1C282C0-54D8-4aa7-BB18-3B83744DA9F7}
 //
 DEFINE_GUID(DEBUG_VERSIONIDENTIFIER_BRANCH, 0xa1c282c0, 0x54d8, 0x4aa7, 0xbb, 0x18, 0x3b, 0x83, 0x74, 0x4d, 0xa9, 0xf7);
@@ -11200,7 +11211,7 @@ DECLARE_INTERFACE_(ISvcImageVersionParser2, ISvcImageVersionParser)
 
 // ISvcImageVersionDataEnumerator:
 //
-// Enumerates version data strings which are returned from an image parser via 
+// Enumerates version data strings which are returned from an image parser via
 // ISvcImageVersionParser2::EnumerateVersionData.
 //
 #undef INTERFACE
@@ -11221,7 +11232,7 @@ DECLARE_INTERFACE_(ISvcImageVersionDataEnumerator, IUnknown)
     // Gets the next version datum in the collection.  At the end of this call:
     //
     //     - *pVersionDataIdentifierGuid is set to the GUID used to retrieve the version data in a call
-    //       to ISvcImageVersionParser::GetVersionDataString.  Such should be a standard 
+    //       to ISvcImageVersionParser::GetVersionDataString.  Such should be a standard
     //       DEBUG_VERSIONIDENTIFIER_* GUID defined in this header.  If there is no standard GUID defining
     //       this datum, GUID_NULL should be returned.
     //
@@ -11249,7 +11260,7 @@ DECLARE_INTERFACE_(ISvcImageVersionDataEnumerator, IUnknown)
 
 // ISvcImageDataLocationParser
 //
-// An optional QI off an ISvcImageParser.  This parses arbitrary image data blobs (structures) and 
+// An optional QI off an ISvcImageParser.  This parses arbitrary image data blobs (structures) and
 // provides pointers to such data.  Data is identified by GUIDs.
 //
 #undef INTERFACE
@@ -11284,7 +11295,7 @@ DEFINE_GUID(DEBUG_SVCDATABLOB_RUNTIME_LINKER_DEBUGGER_RENDEZVOUS, 0x9a42d659, 0x
 // DEBUG_SVCDATABLOB_ENTRY_ADDRESS:
 //
 // A GUID which can be passed to ISvcImageDataLocationParser::LocateDataBlob in order to find
-// the address of the entry point within an executable.  
+// the address of the entry point within an executable.
 //
 // {16E51259-6DBB-4c47-8D28-8AA7BB5F93D2}
 //
@@ -11403,10 +11414,10 @@ enum TargetStatus
 
     // TargetRunning: The target is running
     TargetRunning,
-    
+
     // TargetHaltPending: The target is expected to start halting.  Such has not completed.
     TargetHaltPending,
-    
+
     // TargetHalted: The target is halted and is not actively running instructions/threads
     TargetHalted,
 
@@ -11464,7 +11475,7 @@ enum TargetOperationStatus
     // OperationCompleted: the requested operation has completed
     OperationCompleted,
 
-    // OperationCanceled: the requested operation has been canceled.  
+    // OperationCanceled: the requested operation has been canceled.
     OperationCanceled,
 
     // OperationPending: the requested operation is still pending.
@@ -11483,7 +11494,7 @@ enum TargetOperationDirection
 
 // ISvcTargetOperationStatusNotification:
 //
-// 
+//
 #undef INTERFACE
 #define INTERFACE ISvcTargetOperationStatusNotification
 DECLARE_INTERFACE_(ISvcTargetOperationStatusNotification, IUnknown)
@@ -11494,7 +11505,7 @@ DECLARE_INTERFACE_(ISvcTargetOperationStatusNotification, IUnknown)
     // has changed state (e.g.: completed or been canceled, etc...)
     //
     // The semantics of "pAffectedUnit" and "affectedAddress" depend on the type of operation.  For a halt
-    // operation, this would be the "thread" or "core" that took the halt signal and the program counter 
+    // operation, this would be the "thread" or "core" that took the halt signal and the program counter
     // at the point of the halt.
     //
     STDMETHOD_(void, NotifyOperationChange)(
@@ -11515,9 +11526,9 @@ DECLARE_INTERFACE_(ISvcTargetStateChangeNotification, IUnknown)
     // Called by the step controller or step manager to notify a "client" that a state change has occurred.
     // This may or may not be the result of a particular operation.
     //
-    // If the halt is associated with a particular operation, the operation is passed here. 
+    // If the halt is associated with a particular operation, the operation is passed here.
     //
-    // *NOTE*: If a state change is associated with an operation and callbacks are registered for both, the 
+    // *NOTE*: If a state change is associated with an operation and callbacks are registered for both, the
     //         step controller/manager's general state change notification *MUST* happen *BEFORE* the operation's
     //         notification.
     //
@@ -11526,7 +11537,7 @@ DECLARE_INTERFACE_(ISvcTargetStateChangeNotification, IUnknown)
     //     - TargetHalted / HaltBreakpoint: The ISvcBreakpoint which was hit
     //     - TargetHalted / HaltProcessExit: The ISvcProcess which terminated
     //     - Otherwise: Undefined
-    //        
+    //
     STDMETHOD_(void, NotifyStateChange)(
         _In_ TargetStatus currentStatus,
         _In_ HaltReason haltReason,
@@ -11899,7 +11910,7 @@ DECLARE_INTERFACE_(ISvcBreakpointControllerAdvanced, IUnknown)
     // Indicates whether or not the register context retrieved for a breakpoint trap reflects @pc as
     // reported by the underlying hardware trap/fault.  This should normally return *true* and, if this
     // interface is not present, the assumption is that the value is true.
-    // 
+    //
     // On ARM64, the "BRK ..." instruction used for software breakpoints represents a fault where the
     // address points *AT* the "BRK ..." instruction.  This is unlike the "int 3" trap on X64 where the
     // address points *AFTER* the "int 3" instruction.
@@ -11926,12 +11937,12 @@ DECLARE_INTERFACE_(ISvcBreakpointControllerAdvanced, IUnknown)
 DECLARE_INTERFACE_(ISvcBreakpointControllerAdvanced2, ISvcBreakpointControllerAdvanced)
 {
     // GetSoftwareBreakpointAddressDelta():
-    // 
+    //
     // This method is optional and may legally return E_NOTIMPL.  If this method is implemented, it supercedes
     // any implementation of ISvcBreakpointControllerAdvanced::DoesBreakpointTrapAddressReflectHardware.
     //
     // If a breakpoint is set with CreateCodeBreakpoint on the controller and such breakpoint is hit on a given
-    // thread or processor X, and the register context of 'X' is fetched and @pc interrogated, this returns the 
+    // thread or processor X, and the register context of 'X' is fetched and @pc interrogated, this returns the
     // number of bytes @pc is past the breakpoint instruction.  This may be zero (indicating that @pc will be
     // reported as the address of the breakpoint or it maybe a positive value indicating that @pc will be reported
     // past the breakpoint instruction).
@@ -11939,8 +11950,8 @@ DECLARE_INTERFACE_(ISvcBreakpointControllerAdvanced2, ISvcBreakpointControllerAd
     // On X64, it is typical that a software breakpoint will result in a context which is "past" the instruction
     // (e.g.: an int 3) which generates the trap.  On ARM64, the "BRK ..." instruction is a fault and it is typical
     // that this results in a context which is "at" the instruction.  Thus, for "X64", this would typically return
-    // "1" (the size of an "int 3" encoding) and for ARM64, it would typically return "0".  On Windows, the kernel 
-    // will make "ARM64" look like X64 and adjust the context record.  Thus, on Windows ARM64, this would return 
+    // "1" (the size of an "int 3" encoding) and for ARM64, it would typically return "0".  On Windows, the kernel
+    // will make "ARM64" look like X64 and adjust the context record.  Thus, on Windows ARM64, this would return
     // "4" (the size of a "BRK ..." encoding).  The same is not true of a GDBServer running on Linux (where this
     // would return "0" for ARM64).  Even on X64, an RR GDBServer will return a register contexct that pointed
     // at the breakpoint instruction (and hence, this would return "0").
@@ -12000,7 +12011,7 @@ DECLARE_INTERFACE_(ISvcSecondaryStateSynchronizationGenerationCounterProfileItem
     //
     STDMETHOD(GetValue)(
         THIS_
-        _Out_ ULONG64 *pPrimaryValue, 
+        _Out_ ULONG64 *pPrimaryValue,
         _Out_ ULONG64 *pSecondaryValue
         ) PURE;
 };
@@ -12071,7 +12082,7 @@ DECLARE_INTERFACE_(ISvcSecondaryStateSynchronizationProfileItemEnumerator, IUnkn
 //     [Reserved] Currently, always nullptr
 //
 // Event Guid:
-// 
+//
 //     966E5F1F-C1DD-45b0-8C39-112EFF58D996
 //
 DEFINE_GUID(DEBUG_SVCEVENT_SERVICEMANAGERINITIALIZED, 0x966e5f1f, 0xc1dd, 0x45b0, 0x8c, 0x39, 0x11, 0x2e, 0xff, 0x58, 0xd9, 0x96);
@@ -12267,7 +12278,7 @@ DECLARE_INTERFACE_(ISvcEventArgumentsModuleDiscovery, IUnknown)
 {
     // GetModule():
     //
-    // Gets the module which is (dis)appearing.  
+    // Gets the module which is (dis)appearing.
     //
     // For a module arrival event, the returned module must already be in the enumerator as of the firing
     // of this event and must be fully valid.
@@ -12275,7 +12286,7 @@ DECLARE_INTERFACE_(ISvcEventArgumentsModuleDiscovery, IUnknown)
     // For a module disappearance event, the interfaces on the returned module *MUST* continue to operate
     // as if the module were loaded until the event notification has completed.  This means fetching the name,
     // base address, size, etc...  must function during the event notification.  After the event notification
-    // is complete, the module may be considered detached/orphaned for anyone continuing to hold the 
+    // is complete, the module may be considered detached/orphaned for anyone continuing to hold the
     // ISvcModule interface.
     //
     STDMETHOD(GetModule)(
@@ -12443,14 +12454,14 @@ DECLARE_INTERFACE_(ISvcEventArgumentsProcessDiscovery, IUnknown)
 {
     // GetProcess():
     //
-    // Gets the process which is (dis)appearing.  
+    // Gets the process which is (dis)appearing.
     //
     // For a process arrival event, the returned process must already be in the enumerator as of the firing
     // of this event and must be fully valid.
     //
     // For a process disappearance event, the interfaces on the returned module *MUST* continue to operate
     // as if the process were targeted until the event notification has completed.  After the event notification
-    // is complete, the process may be considered detached/orphaned for anyone continuing to hold the 
+    // is complete, the process may be considered detached/orphaned for anyone continuing to hold the
     // ISvcProcess interface.
     //
     STDMETHOD(GetProcess)(
@@ -12532,7 +12543,7 @@ DECLARE_INTERFACE_(ISvcEventArgumentsThreadDiscovery, IUnknown)
 // DEBUG_SVCEVENT_STATECHANGE_CACHEINVALIDATE
 //
 // An event which targets can fire to indicate that state changed for some external reason and caches
-// related to a given process (or overall kernel target) need to be flushed.   
+// related to a given process (or overall kernel target) need to be flushed.
 //
 // Event Argument:
 //
@@ -12716,7 +12727,7 @@ public:
 
     // DataReader():
     //
-    // Construct a data reader from a given memory access interface and a given machine architecture. 
+    // Construct a data reader from a given memory access interface and a given machine architecture.
     //
     DataReader(_In_ ISvcMemoryAccess *pMemoryAccess, _In_ ISvcMachineArchitecture *pMachineArch, _In_ bool holdRef = true) :
         m_pMemoryAccess(pMemoryAccess),
@@ -12752,8 +12763,8 @@ public:
         // @TODO: Endianness flip.
         //
         ULONG64 bytesRead;
-        HRESULT hr = m_pMemoryAccess->ReadMemory(pAddressContext, 
-                                                 byteOffset, 
+        HRESULT hr = m_pMemoryAccess->ReadMemory(pAddressContext,
+                                                 byteOffset,
                                                  static_cast<void *>(pItem),
                                                  static_cast<ULONG64>(sizeof(T)),
                                                  &bytesRead);
@@ -12778,8 +12789,8 @@ public:
         // @TODO: Endianness flip.
         //
         ULONG64 bytesWritten;
-        HRESULT hr = m_pMemoryAccess->ReadMemory(pAddressContext, 
-                                                 byteOffset, 
+        HRESULT hr = m_pMemoryAccess->ReadMemory(pAddressContext,
+                                                 byteOffset,
                                                  static_cast<void *>(&item),
                                                  static_cast<ULONG64>(sizeof(T)),
                                                  &bytesWritten);
@@ -12813,7 +12824,7 @@ public:
                                              static_cast<void *>(&ptr64),
                                              static_cast<ULONG64>(sizeof(ULONG64)),
                                              &bytesRead);
-            
+
             if (hr == S_FALSE || bytesRead != sizeof(ULONG64))
             {
                 hr = E_FAIL;
@@ -12821,8 +12832,8 @@ public:
         }
         else
         {
-            hr = m_pMemoryAccess->ReadMemory(pAddressContext, 
-                                             byteOffset, 
+            hr = m_pMemoryAccess->ReadMemory(pAddressContext,
+                                             byteOffset,
                                              static_cast<void *>(&ptr32),
                                              static_cast<ULONG64>(sizeof(ULONG)),
                                              &bytesRead);
@@ -12871,7 +12882,7 @@ public:
                                               static_cast<void *>(&ptr64),
                                               static_cast<ULONG64>(sizeof(ULONG64)),
                                               &bytesWritten);
-            
+
             if (hr == S_FALSE || bytesWritten != sizeof(ULONG64))
             {
                 hr = E_FAIL;
@@ -12889,8 +12900,8 @@ public:
             }
             ptr32 = static_cast<ULONG>(pointerValue);
 
-            hr = m_pMemoryAccess->WriteMemory(pAddressContext, 
-                                              byteOffset, 
+            hr = m_pMemoryAccess->WriteMemory(pAddressContext,
+                                              byteOffset,
                                               static_cast<void *>(&ptr32),
                                               static_cast<ULONG64>(sizeof(ULONG)),
                                               &bytesWritten);
@@ -12911,8 +12922,8 @@ public:
     // Partial elements will never be read.
     //
     template<typename T>
-    HRESULT ReadDataArray(_In_ ISvcAddressContext *pAddressContext, 
-                          _In_ ULONG64 byteOffset, 
+    HRESULT ReadDataArray(_In_ ISvcAddressContext *pAddressContext,
+                          _In_ ULONG64 byteOffset,
                           _In_ ULONG64 arrayCount,
                           _Out_writes_(arrayCount) T *pArray,
                           _Out_ ULONG64 *pValuesRead)
@@ -12955,7 +12966,7 @@ public:
     // Writes an array of ordinal values of type T to the given memory space (correcting for endianness).
     // Partial writes of the array will return S_FALSE and an indication of how many values were actually written.
     // Partial writes of individual elements will not occur.
-    // 
+    //
     template<typename T>
     HRESULT WriteDataArray(_In_ ISvcAddressContext *pAddressContext,
                            _In_ ULONG64 byteOffset,
