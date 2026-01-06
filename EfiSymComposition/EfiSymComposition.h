@@ -1,15 +1,19 @@
-//**************************************************************************
-//
-// EfiSymComposition.h
-//
-// Main header for the Symbol Locator WinDbg extension. This extension
-// provides a LocateSymbolsForImage callback to intercept symbol resolution.
-//
-//**************************************************************************
-//
-// Copyright (c) Microsoft Corporation.  All rights reserved.
-//
-//**************************************************************************
+/*++
+
+    Copyright (c) Microsoft Corporation.
+
+    SPDX-License-Identifier: BSD-2-Clause-Patent
+
+Module Name:
+
+    EfiSymComposition.h
+
+Abstract:
+
+    Main header for the Symbol Locator WinDbg extension. This extension
+    provides a LocateSymbolsForImage callback to intercept symbol resolution.
+
+--*/
 
 #ifndef __EFISYMCOMPOSITION_H__
 #define __EFISYMCOMPOSITION_H__

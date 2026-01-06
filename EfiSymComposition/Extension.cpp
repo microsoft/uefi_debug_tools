@@ -1,15 +1,19 @@
-//**************************************************************************
-//
-// Extension.cpp
-//
-// Main export functions to be a debugger extension. This extension registers
-// a symbol provider that intercepts LocateSymbolsForImage callbacks.
-//
-//**************************************************************************
-//
-// Copyright (c) Microsoft Corporation.  All rights reserved.
-//
-//**************************************************************************
+/*++
+
+    Copyright (c) Microsoft Corporation.
+
+    SPDX-License-Identifier: BSD-2-Clause-Patent
+
+Module Name:
+
+    Extension.cpp
+
+Abstract:
+
+    Main export functions to be a debugger extension. This extension registers
+    a symbol provider that intercepts LocateSymbolsForImage callbacks.
+
+--*/
 
 #include "EfiSymComposition.h"
 

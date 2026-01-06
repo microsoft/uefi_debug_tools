@@ -1,3 +1,19 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+
+    SPDX-License-Identifier: BSD-2-Clause-Patent
+
+Module Name:
+
+    SymLoad.cpp
+
+Abstract:
+
+    Symbol file searching and ELF debug symbol loading implementation.
+    Handles build-ID verification and file path resolution.
+
+--*/
 
 #include "EfiSymComposition.h"
 #include <shlwapi.h>
