@@ -142,7 +142,6 @@ private:
     ULONG64 m_mappedSize = 0;
 };
 
-// Helper function to verify build-id matches between image and ELF debug file
 static bool VerifyBuildId(_In_ PCSTR elfFilePath, _In_ PVOID pBldIdData, _In_ SIZE_T bldIdSize)
 {
     HANDLE hElfFile = CreateFileA(elfFilePath, GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, nullptr);
@@ -152,38 +151,6 @@ static bool VerifyBuildId(_In_ PCSTR elfFilePath, _In_ PVOID pBldIdData, _In_ SI
     }
 
     bool buildIdMatches = false;
-
-    // Parse the build-id from the image's .build-id section
-    // The format is: namesz(4) descsz(4) type(4) name(aligned) desc(aligned)
-    BYTE* buildIdBytes = (BYTE*)pBldIdData;
-    DWORD imageBuildIdSize = 0;
-    BYTE* pImageBuildId = nullptr;
-
-    if (bldIdSize >= 12)
-    {
-        DWORD namesz = *(DWORD*)&buildIdBytes[0];
-        DWORD descsz = *(DWORD*)&buildIdBytes[4];
-        DWORD type = *(DWORD*)&buildIdBytes[8];
-
-        // GNU build-id note has type 3 and name "GNU\0"
-        if (type == 3 && namesz == 4 && bldIdSize >= 12 + namesz + descsz)
-        {
-            SIZE_T nameEnd = 12 + namesz;
-            SIZE_T alignedNameEnd = (nameEnd + 3) & ~3;
-
-            if (memcmp(&buildIdBytes[12], "GNU\0", 4) == 0)
-            {
-                pImageBuildId = &buildIdBytes[alignedNameEnd];
-                imageBuildIdSize = descsz;
-            }
-        }
-    }
-
-    if (pImageBuildId == nullptr || imageBuildIdSize == 0)
-    {
-        CloseHandle(hElfFile);
-        return false;
-    }
 
     // Read ELF header to find section headers
     BYTE elfHeader[64] = {};
@@ -258,7 +225,6 @@ static bool VerifyBuildId(_In_ PCSTR elfFilePath, _In_ PVOID pBldIdData, _In_ SI
             if (ReadFile(hElfFile, sectionHeader, shentsize, &dwRead, nullptr) && dwRead == shentsize)
             {
                 DWORD sh_name = *(DWORD*)&sectionHeader[0];
-                DWORD sh_type = *(DWORD*)&sectionHeader[4];
                 ULONG64 sh_offset = 0;
                 ULONG64 sh_size = 0;
 
@@ -273,53 +239,27 @@ static bool VerifyBuildId(_In_ PCSTR elfFilePath, _In_ PVOID pBldIdData, _In_ SI
                     sh_size = *(DWORD*)&sectionHeader[20];
                 }
 
-                // Check if this is a .build-id section by name
                 if (shstrtab && sh_name < shstrtabSize)
                 {
                     const char* sectionName = (const char*)&shstrtab[sh_name];
                     if (strcmp(sectionName, ".build-id") == 0 && sh_size > 0)
                     {
-                        // Read .build-id section data
-                        std::unique_ptr<BYTE[]> noteData = std::make_unique<BYTE[]>((SIZE_T)sh_size);
-                        LARGE_INTEGER noteOffset;
-                        noteOffset.QuadPart = sh_offset;
-                        SetFilePointer(hElfFile, noteOffset.LowPart, &noteOffset.HighPart, FILE_BEGIN);
-
-                        if (ReadFile(hElfFile, noteData.get(), (DWORD)sh_size, &dwRead, nullptr) && dwRead == sh_size)
+                        // Both sections have the same format, so just compare the section data.
+                        // The sizes may not match because of image conversion and padding.
+                        SIZE_T compareSize = (sh_size < bldIdSize) ? (SIZE_T)sh_size : bldIdSize;
+                        if (compareSize > 0)
                         {
-                            // Parse note entries (name size, desc size, type, name, desc)
-                            SIZE_T offset = 0;
-                            while (offset + 12 <= sh_size)
+                            std::unique_ptr<BYTE[]> elfBuildIdData = std::make_unique<BYTE[]>((SIZE_T)sh_size);
+                            LARGE_INTEGER buildIdOffset;
+                            buildIdOffset.QuadPart = sh_offset;
+                            SetFilePointer(hElfFile, buildIdOffset.LowPart, &buildIdOffset.HighPart, FILE_BEGIN);
+
+                            if (ReadFile(hElfFile, elfBuildIdData.get(), (DWORD)sh_size, &dwRead, nullptr) && dwRead == sh_size)
                             {
-                                DWORD namesz = *(DWORD*)&noteData[offset];
-                                DWORD descsz = *(DWORD*)&noteData[offset + 4];
-                                DWORD type = *(DWORD*)&noteData[offset + 8];
-                                offset += 12;
-
-                                // Align name
-                                SIZE_T nameEnd = offset + namesz;
-                                SIZE_T alignedNameEnd = (nameEnd + 3) & ~3;
-
-                                // Check if this is a GNU build-id note (type 3)
-                                if (type == 3 && namesz >= 4 && offset + namesz <= sh_size)
+                                if (memcmp(elfBuildIdData.get(), pBldIdData, compareSize) == 0)
                                 {
-                                    if (memcmp(&noteData[offset], "GNU\0", 4) == 0)
-                                    {
-                                        offset = alignedNameEnd;
-
-                                        // Compare build-id from ELF debug file with image's build-id
-                                        if (offset + descsz <= sh_size && descsz == imageBuildIdSize)
-                                        {
-                                            if (memcmp(&noteData[offset], pImageBuildId, imageBuildIdSize) == 0)
-                                            {
-                                                buildIdMatches = true;
-                                                break;
-                                            }
-                                        }
-                                    }
+                                    buildIdMatches = true;
                                 }
-
-                                offset = alignedNameEnd + ((descsz + 3) & ~3);
                             }
                         }
                         break;
@@ -356,12 +296,11 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress,
         pDebugClient->QueryInterface(IID_PPV_ARGS(&spControl));
     }
 
-    if (spControl)
-        spControl->Output(DEBUG_OUTPUT_SYMBOLS,
-                         "EfiSymComposition: Loading EFI symbols for base %I64x, PDB path: %s, Build-ID Size: %llu\n",
-                         BaseAddress,
-                         FilePath,
-                         bldIdSize);
+    LOG_VERBOSE(spControl,
+                "EfiSymComposition: Loading EFI symbols for base %I64x, PDB path: %s, Build-ID Size: %llu\n",
+                BaseAddress,
+                FilePath,
+                bldIdSize);
 
     // Get symbol path from debugger if available
     char symbolPathBuf[4096] = {0};
@@ -379,13 +318,11 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress,
     // Fallback to default if we couldn't get the symbol path
     if (symbolPathBuf[0] == '\0')
     {
-        if (spControl)
-            spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Failed to get symbol path from debugger, using default\n");
-        strcpy_s(symbolPathBuf, sizeof(symbolPathBuf), "D:\\wslsym;D:\\sym");
+        LOG_VERBOSE(spControl, "EfiSymComposition: Failed to get symbol path from debugger\n");
+        return FALSE;
     }
 
-    if (spControl)
-        spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Symbol path: %s\n", symbolPathBuf);
+    LOG_VERBOSE(spControl, "EfiSymComposition: Symbol path: %s\n", symbolPathBuf);
 
     // Extract just the filename from the PDB path
     const char* fileName = strrchr(FilePath, '\\');
@@ -413,15 +350,13 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress,
             strcpy_s(ext, sizeof(fixedName) - (ext - fixedName), ".debug");
         }
         fileName = fixedName;
-        if (spControl)
-            spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Converted .dll to .debug: %s\n", fileName);
+        LOG_VERBOSE(spControl, "EfiSymComposition: Converted .dll to .debug: %s\n", fileName);
     } else {
         strcpy_s(fixedName, sizeof(fixedName), fileName);
         fileName = fixedName;
     }
 
-    if (spControl)
-        spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Searching for symbol file: %s\n", fileName);
+    LOG_VERBOSE(spControl, "EfiSymComposition: Searching for symbol file: %s\n", fileName);
 
     // Parse the symbol path and search for the PDB file
     // Symbol path is semicolon-delimited
@@ -449,40 +384,35 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress,
         // Build full path to potential PDB file
         if (PathCombineA(fullPath, token, fileName))
         {
-            if (spControl)
-                spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Checking path: %s\n", fullPath);
+            LOG_VERBOSE(spControl, "EfiSymComposition: Checking path: %s\n", fullPath);
 
-            // Check if file exists
             DWORD attribs = GetFileAttributesA(fullPath);
             if (attribs != INVALID_FILE_ATTRIBUTES && !(attribs & FILE_ATTRIBUTE_DIRECTORY))
             {
+                // If the build ID is provided, verify that is matches.
                 if (bldIdSize > 0 && pBldIdData != nullptr)
                 {
-                    // Verify the build-id matches
                     if (!VerifyBuildId(fullPath, pBldIdData, bldIdSize))
                     {
                         // Build-ID mismatch, skip this file
-                        if (spControl)
-                            spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Build-ID mismatch for %s, skipping\n", fullPath);
+                        LOG_VERBOSE(spControl, "EfiSymComposition: Build-ID mismatch for %s, skipping\n", fullPath);
                         token = strtok_s(nullptr, ";", &pathContext);
                         continue;
                     }
+                } else {
+                    LOG(spControl, "EfiSymComposition: No Build-ID present, skipping verification for %s. Symbols may be mismatched.\n", FilePath);
                 }
 
-                if (spControl)
-                    spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Found symbol file: %s\n", fullPath);
+                LOG_VERBOSE(spControl, "EfiSymComposition: Found symbol file: %s\n", fullPath);
 
-                // Create debug source file for the .debug file
                 ComPtr<ISvcDebugSourceFile> spDebugFile;
                 hr = Microsoft::WRL::MakeAndInitialize<DebugSourceFile>(&spDebugFile, fullPath);
                 if (FAILED(hr))
                 {
-                    if (spControl)
-                        spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Failed to create debug source file (hr=0x%08x)\n", hr);
+                    LOG_VERBOSE(spControl, "EfiSymComposition: Failed to create debug source file (hr=0x%08x)\n", hr);
                     goto Exit;
                 }
 
-                // open symbols
                 hr = spSymbolProvider2->OpenSymbols(
                     spDebugFile.Get(),
                     nullptr,
@@ -494,8 +424,7 @@ BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress,
 
                 if (FAILED(hr))
                 {
-                    if (spControl)
-                        spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Failed to open symbols (hr=0x%08x)\n", hr);
+                    LOG_VERBOSE(spControl, "EfiSymComposition: Failed to open symbols (hr=0x%08x)\n", hr);
                     goto Exit;
                 }
 
@@ -512,8 +441,7 @@ Exit:
 
     if (!found)
     {
-        if (spControl)
-            spControl->Output(DEBUG_OUTPUT_SYMBOLS, "EfiSymComposition: Symbol file not found for %s\n", FilePath);
+        LOG_VERBOSE(spControl, "EfiSymComposition: Symbol file not found for %s\n", FilePath);
     }
 
     return found;

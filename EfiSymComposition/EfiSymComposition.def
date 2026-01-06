@@ -3,3 +3,4 @@ EXPORTS
     DebugExtensionCanUnload
     DebugExtensionUninitialize
     DebugExtensionUnload
+    verbose

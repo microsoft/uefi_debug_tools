@@ -16,6 +16,30 @@
 using namespace Microsoft::WRL;
 using namespace Debugger::TargetComposition::Services::EfiSymComposition;
 
+// Global verbose flag for logging control
+bool g_VerboseLogging = false;
+
+//**************************************************************************
+// Extension Commands:
+//
+
+extern "C"
+HRESULT CALLBACK verbose(IDebugClient* pClient, PCSTR args)
+{
+    ComPtr<IDebugControl> spControl;
+    if (FAILED(pClient->QueryInterface(IID_PPV_ARGS(&spControl))))
+    {
+        return E_FAIL;
+    }
+
+    // Toggle verbose mode
+    g_VerboseLogging = !g_VerboseLogging;
+
+    spControl->Output(DEBUG_OUTPUT_NORMAL, "EfiSymComposition verbose logging: %s\n",
+                     g_VerboseLogging ? "ENABLED" : "DISABLED");
+    return S_OK;
+}
+
 //**************************************************************************
 // Classic DbgEng Style Initialization:
 //

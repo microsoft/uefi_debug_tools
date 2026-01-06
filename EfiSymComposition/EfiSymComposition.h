@@ -57,6 +57,13 @@ class EFIEfiSymCompositionProvider;
 } // TargetComposition
 } // Debugger
 
+// Global verbose flag for logging control
+extern bool g_VerboseLogging;
+
+// Logging macros
+#define LOG(ctrl, ...) { if (ctrl) { (ctrl)->Output(DEBUG_OUTPUT_SYMBOLS, __VA_ARGS__); } }
+#define LOG_VERBOSE(ctrl, ...) { if (g_VerboseLogging && ctrl) { (ctrl)->Output(DEBUG_OUTPUT_SYMBOLS, __VA_ARGS__); } }
+
 // Helper function to find symbol file and call ElfBinComposition's OpenSymbols
 BOOLEAN LoadEfiSymbols(ULONG64 BaseAddress, PCSTR FilePath, _COM_Outptr_ ISvcSymbolSet **ppSymbolSet, _In_ ISvcSymbolProvider2 *spSymbolProvider2, _In_opt_ IDebugClient *pDebugClient, _In_opt_ PVOID pBldIdData, _In_ SIZE_T bldIdSize);
 
