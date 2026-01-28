@@ -208,18 +208,27 @@ uefiext_init (
       return S_FALSE;
     }
 
-    // Detect if this is a UEFI software debugger.
-    Output = ExecuteCommandWithOutput (Client, ".exdicmd target:0:?");
-    if ((strstr (Output, "Rust Debugger") != NULL) ||
-        (strstr (Output, "Patina Debugger") != NULL)) {
+    Output = MonitorCommandWithOutput (Client, "ExdiDbgType", 0);
 
-      dprintf ("Patina Debugger detected.\n");
-      gUefiEnv = PATINA;
-    } else if (strstr (Output, "DXE UEFI Debugger") != NULL) {
-      dprintf ("DXE UEFI Debugger detected.\n");
-      gUefiEnv = DXE;
+    // Don't run !monitor ? on QEMU targets, this causes a confusion between WinDbg and QEMU and we get
+    // corrupted memory reads. It also isn't needed
+    if (strstr (Output, "UEFI") != NULL) {
+      // Detect if this is a UEFI software debugger.
+      Output = MonitorCommandWithOutput (Client, "?", 0);
+      if ((strstr (Output, "Rust Debugger") != NULL) ||
+          (strstr (Output, "Patina Debugger") != NULL)) {
+
+        dprintf ("Patina Debugger detected.\n");
+        gUefiEnv = PATINA;
+      } else if (strstr (Output, "DXE UEFI Debugger") != NULL) {
+        dprintf ("DXE UEFI Debugger detected.\n");
+        gUefiEnv = DXE;
+      } else {
+        dprintf ("Unknown environment, assuming DXE. Unexpected state, update UefiExt.\n");
+        gUefiEnv = DXE;
+      }
     } else {
-      dprintf ("Unknown environment, assuming DXE.\n");
+      dprintf ("Non-UEFI debug environment detected, defaulting to DXE\n");
       gUefiEnv = DXE;
     }
 
