@@ -216,8 +216,8 @@ uefiext_init (
       // Detect if this is a UEFI software debugger.
       Output = MonitorCommandWithOutput (Client, "?", 0);
       if ((strstr (Output, "Rust Debugger") != NULL) ||
-          (strstr (Output, "Patina Debugger") != NULL)) {
-
+          (strstr (Output, "Patina Debugger") != NULL))
+      {
         dprintf ("Patina Debugger detected.\n");
         gUefiEnv = PATINA;
       } else if (strstr (Output, "DXE UEFI Debugger") != NULL) {
@@ -233,7 +233,7 @@ uefiext_init (
     }
 
     dprintf ("Scanning for images.\n");
-    if (gUefiEnv == DXE || gUefiEnv == PATINA) {
+    if ((gUefiEnv == DXE) || (gUefiEnv == PATINA)) {
       g_ExtControl->Execute (
                       DEBUG_OUTCTL_ALL_CLIENTS,
                       "!uefiext.findall",
@@ -279,7 +279,7 @@ public:
   }
 
   STDMETHOD (Output)(THIS_ ULONG Mask, PCSTR Text) {
-    mResponses.push_back (std::string(Text));
+    mResponses.push_back (std::string (Text));
     return S_OK;
   }
 };
@@ -293,9 +293,9 @@ ExecuteCommandWithOutput (
   )
 {
   PDEBUG_OUTPUT_CALLBACKS  Callbacks;
-  static CHAR *Output = NULL;
-  SIZE_T Offset;
-  SIZE_T Length;
+  static CHAR              *Output = NULL;
+  SIZE_T                   Offset;
+  SIZE_T                   Length;
 
   // To avoid complexity of tracking a shifting buffer, easier to just lazily free here.
   if (Output != NULL) {
@@ -365,10 +365,10 @@ MonitorCommandWithOutput (
   }
 
   // If it has the OK string appended to the end, remove it
-  if (strlen(Output) > strlen (Ok)) {
-    size_t Offset = strlen (Output) - strlen (Ok);
+  if (strlen (Output) > strlen (Ok)) {
+    size_t  Offset = strlen (Output) - strlen (Ok);
     if (strcmp (Output + Offset, Ok) == 0) {
-      strcpy_s(Output + Offset, strlen (Ok) + 1, "\n");
+      strcpy_s (Output + Offset, strlen (Ok) + 1, "\n");
     }
   }
 
@@ -380,8 +380,8 @@ BreakFromRunning (
   VOID
   )
 {
-  IDebugClient *DebugClient;
-  PDEBUG_CONTROL DebugControl;
+  IDebugClient    *DebugClient;
+  PDEBUG_CONTROL  DebugControl;
 
   //
   // Running findall refresh makes many assumptions about the target state

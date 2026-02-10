@@ -299,12 +299,12 @@ advlog (
   ULONG                             Offset;
   ULONG                             End;
   ADVANCED_LOGGER_MESSAGE_ENTRY_V2  *Entry;
-  ADVANCED_LOGGER_INFO              Info = { 0 };
+  ADVANCED_LOGGER_INFO              Info      = { 0 };
   ULONG64                           TailBytes = 0;
   PSTR                              *Tokens;
   ULONG                             TokenCount;
   ULONG                             TokenIndex;
-  PCSTR                             HelpString = "Usage: !advlog [-t[bytes]] [address]\n";
+  PCSTR                             HelpString       = "Usage: !advlog [-t[bytes]] [address]\n";
   CONST UINT32                      MessageSignature = 0x324d4c41; // 'ALM2'
 
   // NOTE: This implementation is a crude first past, The following should be done
@@ -336,6 +336,7 @@ advlog (
         Result = ERROR_INVALID_PARAMETER;
         goto Exit;
       }
+
       // Aligning up simplifies looking for messages entries.
       TailBytes = ALIGN_UP (TailBytes, 8);
     } else {
@@ -473,6 +474,7 @@ advlog (
         Offset += 8;
         continue;
       }
+
       break;
     }
   }

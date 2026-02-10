@@ -25,13 +25,13 @@ PDEBUG_REGISTERS  g_ExtRegisters;
 
 WINDBG_EXTENSION_APIS  ExtensionApis;
 
-ULONG              TargetMachine;
-BOOL               Connected;
-UefiEventCallbacks g_EventCallbacks;
-IDebugClient      *g_EventClient = NULL;
+ULONG               TargetMachine;
+BOOL                Connected;
+UefiEventCallbacks  g_EventCallbacks;
+IDebugClient        *g_EventClient = NULL;
 
-extern ULONG64 gSystemTableAddr;
-extern ULONG64 gDebugTableAddr;
+extern ULONG64  gSystemTableAddr;
+extern ULONG64  gDebugTableAddr;
 
 // Queries for all debugger interfaces.
 extern "C" HRESULT
@@ -168,7 +168,7 @@ DebugExtensionInitialize (
 STDMETHODIMP
 UefiEventCallbacks::QueryInterface (
   THIS_
-  _In_ REFIID   InterfaceId,
+  _In_ REFIID  InterfaceId,
   _Out_ PVOID  *Interface
   )
 {
@@ -185,20 +185,18 @@ UefiEventCallbacks::QueryInterface (
   return E_NOINTERFACE;
 }
 
-STDMETHODIMP_(ULONG)
+STDMETHODIMP_ (ULONG)
 UefiEventCallbacks::AddRef (
-  THIS
-  )
-{
+                      THIS
+                      ) {
   // This class is a global singleton, so no reference counting needed
   return 1;
 }
 
-STDMETHODIMP_(ULONG)
+STDMETHODIMP_ (ULONG)
 UefiEventCallbacks::Release (
-  THIS
-  )
-{
+                      THIS
+                      ) {
   // This class is a global singleton, so no reference counting needed
   return 0;
 }
@@ -229,7 +227,7 @@ UefiEventCallbacks::Exception (
   THIS_
   _In_ PEXCEPTION_RECORD64  Exception,
   _In_ ULONG                FirstChance
-)
+  )
 {
   UNREFERENCED_PARAMETER (Exception);
   UNREFERENCED_PARAMETER (FirstChance);
@@ -263,17 +261,17 @@ UefiEventCallbacks::ExitThread (
 STDMETHODIMP
 UefiEventCallbacks::CreateProcess (
   THIS_
-  _In_ ULONG64  ImageFileHandle,
-  _In_ ULONG64  Handle,
-  _In_ ULONG64  BaseOffset,
-  _In_ ULONG    ModuleSize,
-  _In_opt_ PCSTR ModuleName,
-  _In_opt_ PCSTR ImageName,
-  _In_ ULONG    CheckSum,
-  _In_ ULONG    TimeDateStamp,
-  _In_ ULONG64  InitialThreadHandle,
-  _In_ ULONG64  ThreadDataOffset,
-  _In_ ULONG64  StartOffset
+  _In_ ULONG64    ImageFileHandle,
+  _In_ ULONG64    Handle,
+  _In_ ULONG64    BaseOffset,
+  _In_ ULONG      ModuleSize,
+  _In_opt_ PCSTR  ModuleName,
+  _In_opt_ PCSTR  ImageName,
+  _In_ ULONG      CheckSum,
+  _In_ ULONG      TimeDateStamp,
+  _In_ ULONG64    InitialThreadHandle,
+  _In_ ULONG64    ThreadDataOffset,
+  _In_ ULONG64    StartOffset
   )
 {
   UNREFERENCED_PARAMETER (ImageFileHandle);
@@ -303,13 +301,13 @@ UefiEventCallbacks::ExitProcess (
 STDMETHODIMP
 UefiEventCallbacks::LoadModule (
   THIS_
-  _In_ ULONG64   ImageFileHandle,
-  _In_ ULONG64   BaseOffset,
-  _In_ ULONG     ModuleSize,
-  _In_opt_ PCSTR ModuleName,
-  _In_opt_ PCSTR ImageName,
-  _In_ ULONG     CheckSum,
-  _In_ ULONG     TimeDateStamp
+  _In_ ULONG64    ImageFileHandle,
+  _In_ ULONG64    BaseOffset,
+  _In_ ULONG      ModuleSize,
+  _In_opt_ PCSTR  ModuleName,
+  _In_opt_ PCSTR  ImageName,
+  _In_ ULONG      CheckSum,
+  _In_ ULONG      TimeDateStamp
   )
 {
   UNREFERENCED_PARAMETER (ImageFileHandle);
@@ -325,8 +323,8 @@ UefiEventCallbacks::LoadModule (
 STDMETHODIMP
 UefiEventCallbacks::UnloadModule (
   THIS_
-  _In_opt_ PCSTR ImageBaseName,
-  _In_ ULONG64   BaseOffset
+  _In_opt_ PCSTR  ImageBaseName,
+  _In_ ULONG64    BaseOffset
   )
 {
   UNREFERENCED_PARAMETER (ImageBaseName);
@@ -375,14 +373,14 @@ UefiEventCallbacks::ChangeEngineState (
   _In_ ULONG64  Argument
   )
 {
-  static BOOLEAN LastGo = FALSE;
+  static BOOLEAN  LastGo = FALSE;
 
   if (Flags & DEBUG_CES_EXECUTION_STATUS) {
     if (Argument == DEBUG_STATUS_GO) {
       LastGo = TRUE;
-    } else if (Argument == DEBUG_STATUS_BREAK && LastGo) {
+    } else if ((Argument == DEBUG_STATUS_BREAK) && LastGo) {
       LastGo = FALSE;
-      BreakFromRunning();
+      BreakFromRunning ();
     }
   }
 

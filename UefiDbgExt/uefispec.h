@@ -160,7 +160,7 @@ typedef struct {
   EFI_CONFIGURATION_TABLE    *ConfigurationTable;
 } EFI_SYSTEM_TABLE;
 
-#define SYSTEM_TABLE_SIGNATURE (('I') | (static_cast<ULONG64>('B') << 8) | (static_cast<ULONG64>('I') << 16) | (static_cast<ULONG64>(' ') << 24) | (static_cast<ULONG64>('S') << 32) | (static_cast<ULONG64>('Y') << 40) | (static_cast<ULONG64>('S') << 48) | (static_cast<ULONG64>('T') << 56))
+#define SYSTEM_TABLE_SIGNATURE  (('I') | (static_cast<ULONG64>('B') << 8) | (static_cast<ULONG64>('I') << 16) | (static_cast<ULONG64>(' ') << 24) | (static_cast<ULONG64>('S') << 32) | (static_cast<ULONG64>('Y') << 40) | (static_cast<ULONG64>('S') << 48) | (static_cast<ULONG64>('T') << 56))
 
 typedef
 UINT64
@@ -246,20 +246,19 @@ typedef struct {
     0x49152e77, 0x1ada, 0x4764, {0xb7, 0xa2, 0x7a, 0xfe, 0xfe, 0xd9, 0x5e, 0x8b } \
   }
 
+  #ifndef VOID
+#define VOID  void
+  #endif
 
-#ifndef VOID
-  #define VOID void
-#endif
+  #ifndef STATIC
+#define STATIC  static
+  #endif
 
-#ifndef STATIC
-  #define STATIC static
-#endif
+#define EFI_STATUS            UINT64
+#define EFI_SUCCESS           0
+#define EFI_OUT_OF_RESOURCES  0x800000000000000E
+#define EFI_BUFFER_TOO_SMALL  0x8000000000000005
 
-#define EFI_STATUS UINT64
-#define EFI_SUCCESS 0
-#define EFI_OUT_OF_RESOURCES 0x800000000000000E
-#define EFI_BUFFER_TOO_SMALL 0x8000000000000005
-
-#define EFI_ERROR(a) (((EFI_STATUS)(a)) >= 0x8000000000000000)
+#define EFI_ERROR(a)  (((EFI_STATUS)(a)) >= 0x8000000000000000)
 
 #endif // UEFISPEC_H_

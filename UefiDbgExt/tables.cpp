@@ -79,8 +79,8 @@ FindConfigTable (
   IN  const GUID  *TableGuid
   )
 {
-  EFI_SYSTEM_TABLE SystemTable;
-  ULONG            BytesRead = 0;
+  EFI_SYSTEM_TABLE  SystemTable;
+  ULONG             BytesRead = 0;
 
   // Read the EFI_SYSTEM_TABLE structure from the provided address
   if (!ReadMemory (SystemTableAddr, &SystemTable, sizeof (SystemTable), &BytesRead) || (BytesRead != sizeof (SystemTable))) {
@@ -88,7 +88,8 @@ FindConfigTable (
   }
 
   // Iterate through the configuration tables to find the debug image info table
-  ULONG64 ConfigTableAddr = (ULONG64)SystemTable.ConfigurationTable;
+  ULONG64  ConfigTableAddr = (ULONG64)SystemTable.ConfigurationTable;
+
   for (UINT64 i = 0; i < SystemTable.NumberOfTableEntries; i++) {
     EFI_CONFIGURATION_TABLE  CurrentTable;
     if (!ReadMemory (ConfigTableAddr + (i * sizeof (EFI_CONFIGURATION_TABLE)), &CurrentTable, sizeof (CurrentTable), &BytesRead) || (BytesRead != sizeof (CurrentTable))) {
@@ -109,8 +110,8 @@ FindSystemTable (
   )
 
 {
-
   ULONG64  SystemPtrAddr = NULL;
+
   if (gUefiEnv == DXE) {
     SystemPtrAddr = GetExpression ("mDebugTable");
     if (!ReadPointer (SystemPtrAddr, &SystemPtrAddr)) {
@@ -118,7 +119,7 @@ FindSystemTable (
       return 0;
     }
   } else if (gUefiEnv == PATINA) {
-    PSTR Response = MonitorCommandWithOutput (g_ExtClient, "system_table_ptr", 0);
+    PSTR  Response = MonitorCommandWithOutput (g_ExtClient, "system_table_ptr", 0);
     SystemPtrAddr = strtoull (Response, NULL, 16);
 
     if (SystemPtrAddr == 0) {
@@ -168,7 +169,7 @@ FindSystemTable (
     */
   } else {
     // Check the signature at the system table pointer address
-    ULONG64 Signature = 0;
+    ULONG64  Signature = 0;
     if (!ReadPointer (SystemPtrAddr, &Signature)) {
       dprintf ("Failed to read memory at %llx to get system table signature\n", SystemPtrAddr);
       return 0;
@@ -183,7 +184,8 @@ FindSystemTable (
   // move past the signature to get the EFI_SYSTEM_TABLE structure
   SystemPtrAddr += sizeof (UINT64);
 
-  ULONG64 SystemTableAddr  = 0;
+  ULONG64  SystemTableAddr = 0;
+
   if (!ReadPointer (SystemPtrAddr, &SystemTableAddr)) {
     dprintf ("Failed to read the system table address at %llx!\n", SystemPtrAddr);
     return 0;

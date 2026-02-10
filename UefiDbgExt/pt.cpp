@@ -345,7 +345,7 @@ DisplayHardwarePte (
       );
 
     // print the PA at the entry, not the start of the table
-    ULONG64 Offset = Address & 0xFFF;
+    ULONG64  Offset = Address & 0xFFF;
 
     PrintDml (
       Normal,

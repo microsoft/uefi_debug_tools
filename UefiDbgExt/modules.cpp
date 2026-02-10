@@ -20,10 +20,10 @@ Abstract:
 #include <vector>
 #include <cstring>
 
-const GUID gDebugImageInfoTableGuid = EFI_DEBUG_IMAGE_INFO_TABLE_GUID;
+const GUID  gDebugImageInfoTableGuid = EFI_DEBUG_IMAGE_INFO_TABLE_GUID;
 
-ULONG64 gSystemTableAddr  = 0;
-ULONG64 gDebugTableAddr   = 0;
+ULONG64  gSystemTableAddr = 0;
+ULONG64  gDebugTableAddr  = 0;
 
 VOID
 LoadCompositionExtensions (
@@ -312,6 +312,7 @@ loadmodules (
 
   // Read the debug image info table header
   EFI_DEBUG_IMAGE_INFO_TABLE_HEADER  DebugImageInfoTableHeader;
+
   if (!ReadMemory (DebugTableAddr, &DebugImageInfoTableHeader, sizeof (DebugImageInfoTableHeader), &BytesRead) || (BytesRead != sizeof (DebugImageInfoTableHeader))) {
     dprintf ("Failed to read EFI_DEBUG_IMAGE_INFO_TABLE_HEADER at %llx\n", DebugTableAddr);
     return ERROR_NOT_FOUND;
@@ -329,26 +330,25 @@ loadmodules (
 
   if (DebugImageInfoTableHeader.UpdateStatus & EFI_DEBUG_IMAGE_INFO_TABLE_MODIFIED) {
     UINT32  NewStatus = DebugImageInfoTableHeader.UpdateStatus & (~EFI_DEBUG_IMAGE_INFO_TABLE_MODIFIED);
-    if (!WriteMemory (DebugTableAddr + offsetof(EFI_DEBUG_IMAGE_INFO_TABLE_HEADER, UpdateStatus), &NewStatus, sizeof (NewStatus), &BytesRead) || (BytesRead != sizeof (NewStatus))) {
+    if (!WriteMemory (DebugTableAddr + offsetof (EFI_DEBUG_IMAGE_INFO_TABLE_HEADER, UpdateStatus), &NewStatus, sizeof (NewStatus), &BytesRead) || (BytesRead != sizeof (NewStatus))) {
       dprintf ("Failed to clear modified flag in EFI_DEBUG_IMAGE_INFO_TABLE_HEADER at %llx\n", DebugTableAddr);
     }
-
   } else if (Refresh) {
     dprintf ("No modifications to debug table.\n");
     return S_OK;
   }
 
   if ((DebugImageInfoTableHeader.EfiDebugImageInfoTable == NULL) ||
-      (DebugImageInfoTableHeader.TableSize == 0)) {
-
+      (DebugImageInfoTableHeader.TableSize == 0))
+  {
     dprintf ("Debug image info table is empty!\n");
     return ERROR_NOT_FOUND;
   }
 
   // Iterate through the debug image info table entries
   for (ULONG Index = 0; Index < DebugImageInfoTableHeader.TableSize; Index++) {
-    ULONG64 EntryAddr = (ULONG64)DebugImageInfoTableHeader.EfiDebugImageInfoTable + (Index * sizeof (EFI_DEBUG_IMAGE_INFO));
-    ULONG64 NormalImageAddr;
+    ULONG64  EntryAddr = (ULONG64)DebugImageInfoTableHeader.EfiDebugImageInfoTable + (Index * sizeof (EFI_DEBUG_IMAGE_INFO));
+    ULONG64  NormalImageAddr;
     if (!ReadMemory (EntryAddr, &NormalImageAddr, sizeof (NormalImageAddr), &BytesRead) || (BytesRead != sizeof (NormalImageAddr))) {
       dprintf ("Failed to read debug image info entry at index %lu\n", Index);
       continue;
@@ -359,8 +359,8 @@ loadmodules (
       continue;
     }
 
-    ULONG64 LoadedImageProtocolAddr;
-    if (!ReadMemory (NormalImageAddr + offsetof(EFI_DEBUG_IMAGE_INFO_NORMAL, LoadedImageProtocolInstance), &LoadedImageProtocolAddr, sizeof (LoadedImageProtocolAddr), &BytesRead) || (BytesRead != sizeof (LoadedImageProtocolAddr))) {
+    ULONG64  LoadedImageProtocolAddr;
+    if (!ReadMemory (NormalImageAddr + offsetof (EFI_DEBUG_IMAGE_INFO_NORMAL, LoadedImageProtocolInstance), &LoadedImageProtocolAddr, sizeof (LoadedImageProtocolAddr), &BytesRead) || (BytesRead != sizeof (LoadedImageProtocolAddr))) {
       dprintf ("Failed to read loaded image protocol instance at index %lu\n", Index);
       continue;
     }
@@ -370,14 +370,14 @@ loadmodules (
       continue;
     }
 
-    UINT64 ImageBase;
-    if (!ReadMemory (LoadedImageProtocolAddr + offsetof(EFI_LOADED_IMAGE_PROTOCOL, ImageBase), &ImageBase, sizeof (ImageBase), &BytesRead) || (BytesRead != sizeof (ImageBase))) {
+    UINT64  ImageBase;
+    if (!ReadMemory (LoadedImageProtocolAddr + offsetof (EFI_LOADED_IMAGE_PROTOCOL, ImageBase), &ImageBase, sizeof (ImageBase), &BytesRead) || (BytesRead != sizeof (ImageBase))) {
       dprintf ("Failed to read image base at index %lu\n", Index);
       continue;
     }
 
     // Check if the module is already loaded
-    ULONG64 Base;
+    ULONG64  Base;
     if ((g_ExtSymbols->GetModuleByOffset (ImageBase, 0, NULL, &Base) == S_OK) && (ImageBase == Base)) {
       dprintf ("Module at %llx is already loaded\n", ImageBase);
       continue;
@@ -387,7 +387,7 @@ loadmodules (
 
     if (!ReloadModuleFromPeDebug (ImageBase)) {
       // If ReloadModuleFromPeDebug fails, fall back to .imgscan
-      CHAR Command[512];
+      CHAR  Command[512];
       sprintf_s (Command, sizeof (Command), ".imgscan /l /r %I64x (%I64x + 0xFFF)", ImageBase, ImageBase);
       g_ExtControl->Execute (
                       DEBUG_OUTCTL_THIS_CLIENT,
@@ -434,8 +434,8 @@ findall (
   PCSTR           args
   )
 {
-  ULONG    BytesRead              = 0;
-  BOOLEAN  RefreshMode            = FALSE;
+  ULONG    BytesRead   = 0;
+  BOOLEAN  RefreshMode = FALSE;
   HRESULT  Result;
 
   INIT_API ();
@@ -453,11 +453,10 @@ findall (
   // Only use the cached table addresses in refresh mode
   if (!RefreshMode) {
     gSystemTableAddr = 0;
-    gDebugTableAddr = 0;
+    gDebugTableAddr  = 0;
   }
 
   if (gSystemTableAddr == 0) {
-
     //
     // Finding the system table may require finding and loading the core first.
     //

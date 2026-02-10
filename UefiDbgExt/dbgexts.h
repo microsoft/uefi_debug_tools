@@ -54,39 +54,39 @@ class UefiEventCallbacks : public IDebugEventCallbacks
 {
 public:
   // IUnknown
-  STDMETHOD(QueryInterface)(
+  STDMETHOD (QueryInterface)(
     THIS_
     _In_ REFIID InterfaceId,
-    _Out_ PVOID* Interface
+    _Out_ PVOID *Interface
     );
-  STDMETHOD_(ULONG, AddRef)(THIS);
-  STDMETHOD_(ULONG, Release)(THIS);
+  STDMETHOD_ (ULONG, AddRef)(THIS);
+  STDMETHOD_ (ULONG, Release)(THIS);
 
   // IDebugEventCallbacks
-  STDMETHOD(GetInterestMask)(
+  STDMETHOD (GetInterestMask)(
     THIS_
     _Out_ PULONG Mask
     );
-  STDMETHOD(Breakpoint)(
+  STDMETHOD (Breakpoint)(
     THIS_
     _In_ PDEBUG_BREAKPOINT Bp
     );
-  STDMETHOD(Exception)(
+  STDMETHOD (Exception)(
     THIS_
     _In_ PEXCEPTION_RECORD64 Exception,
     _In_ ULONG FirstChance
     );
-  STDMETHOD(CreateThread)(
+  STDMETHOD (CreateThread)(
     THIS_
     _In_ ULONG64 Handle,
     _In_ ULONG64 DataOffset,
     _In_ ULONG64 StartOffset
     );
-  STDMETHOD(ExitThread)(
+  STDMETHOD (ExitThread)(
     THIS_
     _In_ ULONG ExitCode
     );
-  STDMETHOD(CreateProcess)(
+  STDMETHOD (CreateProcess)(
     THIS_
     _In_ ULONG64 ImageFileHandle,
     _In_ ULONG64 Handle,
@@ -100,11 +100,11 @@ public:
     _In_ ULONG64 ThreadDataOffset,
     _In_ ULONG64 StartOffset
     );
-  STDMETHOD(ExitProcess)(
+  STDMETHOD (ExitProcess)(
     THIS_
     _In_ ULONG ExitCode
     );
-  STDMETHOD(LoadModule)(
+  STDMETHOD (LoadModule)(
     THIS_
     _In_ ULONG64 ImageFileHandle,
     _In_ ULONG64 BaseOffset,
@@ -114,31 +114,31 @@ public:
     _In_ ULONG CheckSum,
     _In_ ULONG TimeDateStamp
     );
-  STDMETHOD(UnloadModule)(
+  STDMETHOD (UnloadModule)(
     THIS_
     _In_opt_ PCSTR ImageBaseName,
     _In_ ULONG64 BaseOffset
     );
-  STDMETHOD(SystemError)(
+  STDMETHOD (SystemError)(
     THIS_
     _In_ ULONG Error,
     _In_ ULONG Level
     );
-  STDMETHOD(SessionStatus)(
+  STDMETHOD (SessionStatus)(
     THIS_
     _In_ ULONG Status
     );
-  STDMETHOD(ChangeDebuggeeState)(
+  STDMETHOD (ChangeDebuggeeState)(
     THIS_
     _In_ ULONG Flags,
     _In_ ULONG64 Argument
     );
-  STDMETHOD(ChangeEngineState)(
+  STDMETHOD (ChangeEngineState)(
     THIS_
     _In_ ULONG Flags,
     _In_ ULONG64 Argument
     );
-  STDMETHOD(ChangeSymbolState)(
+  STDMETHOD (ChangeSymbolState)(
     THIS_
     _In_ ULONG Flags,
     _In_ ULONG64 Argument
