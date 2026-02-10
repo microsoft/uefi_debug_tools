@@ -108,6 +108,39 @@ New commands can be exported by added them to the exports in uefiext.def. New
 commands should also be added to the help command in uefiext.cpp. For reference
 on how to write debugger extension code, see the [Microsoft API Docs](https://docs.microsoft.com/en-us/windows-hardware/drivers/debugger/debugger-engine-and-extension-apis).
 
+## Code Formatting
+
+This project uses [uncrustify](https://github.com/uncrustify/uncrustify) for code
+formatting, following the EDK II C Coding Standards. The configuration file is
+located at the repository root (`uncrustify.cfg`).
+
+**Important:** Use uncrustify version 73.0.11 from the [tianocore/uncrustify](https://github.com/tianocore/uncrustify/releases/tag/73.0.11)
+fork to ensure consistency with the CI pipeline. This is the same version used
+by EDK II. Different versions may produce different formatting results.
+
+### Checking Formatting
+
+Install the [Uncrustify extension](https://marketplace.visualstudio.com/items?itemName=zachflower.uncrustify)
+for VS Code. The extension will automatically use the `uncrustify.cfg` file in
+the repository root to check and format your code.
+
+Alternatively, you can check formatting from the command line:
+
+```powershell
+Get-ChildItem -Path UefiDbgExt -Recurse -Include *.c,*.cpp,*.h | ForEach-Object { uncrustify -c uncrustify.cfg --check $_.FullName }
+```
+
+### Fixing Formatting
+
+To automatically fix formatting issues:
+
+```powershell
+Get-ChildItem -Path UefiDbgExt -Recurse -Include *.c,*.cpp,*.h | ForEach-Object { uncrustify -c uncrustify.cfg --replace --no-backup $_.FullName }
+```
+
+A GitHub Actions workflow automatically checks formatting on pull requests to
+ensure code style consistency.
+
 ## Copyright
 
 Copyright (C) Microsoft Corporation. All rights reserved.

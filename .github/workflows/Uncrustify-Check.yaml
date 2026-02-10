@@ -1,0 +1,54 @@
+#
+# GitHub Action Workflow for checking code formatting with uncrustify.
+#
+# Copyright (c) Microsoft Corporation
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+
+name: "Uncrustify Format Check"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  uncrustify-check:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+
+      - name: Install uncrustify
+        run: |
+          Invoke-WebRequest -Uri "https://github.com/tianocore/uncrustify/releases/download/73.0.11/uncrustify-release.zip" -OutFile uncrustify-release.zip
+          Expand-Archive uncrustify-release.zip -DestinationPath uncrustify-release
+
+      - name: Display uncrustify version
+        run: .\uncrustify-release\Windows-x86\uncrustify.exe --version
+
+      - name: Run uncrustify check
+        run: |
+          Get-ChildItem -Path UefiDbgExt -Recurse -Include *.c,*.cpp,*.h | ForEach-Object {
+            & .\uncrustify-release\Windows-x86\uncrustify.exe -c uncrustify.cfg --check $_.FullName
+            if ($LASTEXITCODE -ne 0) { $script:failed = $true }
+          }
+          if ($script:failed) { exit 1 }
+
+      - name: Show diff on failure
+        if: failure()
+        run: |
+          Get-ChildItem -Path UefiDbgExt -Recurse -Include *.c,*.cpp,*.h | ForEach-Object {
+            $formatted = & .\uncrustify-release\Windows-x86\uncrustify.exe -c uncrustify.cfg -f $_.FullName 2>$null
+            $original = Get-Content $_.FullName -Raw
+            if ($formatted -ne $original) {
+              Write-Host "=== Diff for $($_.FullName) ==="
+              & .\uncrustify-release\Windows-x86\uncrustify.exe -c uncrustify.cfg -f $_.FullName | Compare-Object (Get-Content $_.FullName) -PassThru
+            }
+          }
+          Write-Host ""
+          Write-Host "To fix formatting issues locally, run:"
+          Write-Host '  Get-ChildItem -Path UefiDbgExt -Recurse -Include *.c,*.cpp,*.h | ForEach-Object { uncrustify -c uncrustify.cfg --replace --no-backup $_.FullName }'
