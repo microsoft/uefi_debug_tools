@@ -1,4 +1,9 @@
+// A namespace for all visualizers related to the `patina-internal_collections` crate.
+//
+// Copyright (c) Microsoft Corporation.
+// SPDX-License-Identifier: BSD-2-Clause-Patent
 namespace Visualizers.Collections {
+    // Returns all type signature registrations for visualizers in this namespace.
     export function getRegistrations() {       
         return [
             new host.typeSignatureRegistration(

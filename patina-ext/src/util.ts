@@ -1,3 +1,8 @@
+// A namespace for utility functions used throughout the extension.
+//
+// Copyright (c) Microsoft Corporation.
+// SPDX-License-Identifier: BSD-2-Clause-Patent
+
 // Returns a static symbol by name and returns it as a host object.
 //
 // Returns null if the symbol or module is not found
@@ -49,4 +54,10 @@ function inspectObject(obj: any, objName = "object") {
     }
     
     host.diagnostics.debugLog(`=== End ${objName} ===\n\n`);
+}
+
+// Utility function to execute a monitor command and return the output as an array of strings
+function monitorCommand(command: string): string[] {
+    const cmd = `!monitor ${command}`;
+    return host.namespace.Debugger.Utility.Control.ExecuteCommand(cmd);
 }

@@ -248,6 +248,18 @@ uefiext_init (
     }
   }
 
+  g_ExtControl->Execute (
+    DEBUG_OUTCTL_THIS_CLIENT,
+    ".scriptload PatinaExt.js",
+    DEBUG_EXECUTE_DEFAULT
+    );
+  
+  g_ExtControl->Execute (
+    DEBUG_OUTCTL_THIS_CLIENT,
+    "!__patina_ext_init",
+    DEBUG_EXECUTE_DEFAULT
+    );
+
   EXIT_API ();
 
   return S_OK;
