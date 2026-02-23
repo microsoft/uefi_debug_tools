@@ -40,13 +40,13 @@ jobs:
       - name: Setup node
         uses: actions/setup-node@v3
         with:
-          node-version: '18'
+          node-version: '20'
 
       - name: Build DLL
         run: msbuild UefiDbgExt\uefiext.vcxproj -property:Configuration=${{ matrix.configuration }} -property:Platform=${{ matrix.platform }}
 
       - name: Build Javascript Extension
-        run: npx tsc
+        run: npm install && npm run build
         working-directory: patina-ext
 
       - name: Publish Binary
