@@ -66,7 +66,7 @@ gcd (
 
   if (gUefiEnv == PATINA) {
     // Build command string with quoted arguments
-    std::string  command = BuildQuotedCommand ("!gcd", args);
+    std::string  command = BuildQuotedCommand ("!__gcd", args);
 
     g_ExtControl->Execute (
                     DEBUG_OUTCTL_ALL_CLIENTS,

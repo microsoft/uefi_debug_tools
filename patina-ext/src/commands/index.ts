@@ -12,7 +12,7 @@ namespace Commands {
     /// Returns all function aliases for commands in this namespace, including those in sub-namespaces.
     export function getCommands(): any[] {
         return [
-            new host.functionAlias(__gcd, "gcd"),
+            new host.functionAlias(__gcd, "__gcd"),
         ];
     }
 }
