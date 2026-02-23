@@ -22,7 +22,7 @@ DLL command wrapper. This means two things:
 As this is a javascript / typescript project, npm is needed.
 
 1. `> cd patina-ext`
-2. `> npx tsc`
+2. `> npm run build`
 
 ### Usage
 

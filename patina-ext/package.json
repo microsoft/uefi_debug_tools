@@ -1,0 +1,21 @@
+{
+  "name": "patina-ext",
+  "version": "0.1.0",
+  "description": "UEFI Debug Tools - Patina Extension",
+  "main": "PatinaExt.js",
+  "scripts": {
+    "build": "tsc"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0",
+    "@types/node": "^20.0.0"
+  },
+  "keywords": [
+    "uefi",
+    "debug",
+    "tools",
+    "extension"
+  ],
+  "author": "Microsoft",
+  "license": "MIT"
+}
