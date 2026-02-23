@@ -25,8 +25,18 @@ namespace Visualizers.Gcd {
         tag: any;
 
         // Exposes the `memory_type` field of the underlying enum as a property of the `MemoryBlock` enum.
-        get memory_type(): number {
-            return this.__0.memory_type;
+        get memory_type(): string {
+            const memType = parseInt(this.__0.memory_type);
+            switch (memType) {
+                case 0: return "NonExistent";
+                case 1: return "Reserved";
+                case 2: return "SystemMemory";
+                case 3: return "MemoryMappedIo";
+                case 4: return "Persistent";
+                case 5: return "MoreReliable";
+                case 6: return "Unaccepted";
+                default: return `Unknown(${memType})`;
+            }
         }
 
         // Exposes the `base_address` field of the underlying enum as a property of the `MemoryBlock` enum.
@@ -64,8 +74,15 @@ namespace Visualizers.Gcd {
         tag: any;
 
         // Exposes the `io_type` field of the underlying enum as a property of the `IoBlock` enum.
-        get io_type(): number {
-            return this.__0.io_type;
+        get io_type(): string {
+            const ioType = parseInt(this.__0.io_type);
+            switch (ioType) {
+                case 0: return "NonExistent";
+                case 1: return "Reserved";
+                case 2: return "Io";
+                case 3: return "Maximum";
+                default: return `Unknown(${ioType})`;
+            }
         }
 
         // Exposes the `base_address` field of the underlying enum as a property of the `IoBlock` enum.

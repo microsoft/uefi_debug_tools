@@ -24,11 +24,6 @@ namespace Commands {
 //   - io: Dump the GCD I/O map with details about each I/O block.
 //   - help: Show a help message describing the available subcommands and their usage.
 function __gcd(cmd: any) {
-    if (globalThis.ENVIRONMENT !== Environment.PATINA) {
-        host.diagnostics.debugLog("gcd command is only available in the Patina environment.\n");
-        return;
-    }
-
     if (globalThis.PATINA_MODULE === null) {
         host.diagnostics.debugLog("Patina Core module not found.\n");
         return;

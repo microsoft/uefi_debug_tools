@@ -6,19 +6,8 @@
 // Copyright (c) Microsoft Corporation.
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-// An enum representing the environment in which the extension is running. This is used to conditionally enable or
-// disable certain features of the extension that may only be applicable in certain environments (e.g., Patina-specific
-// commands or visualizers).
-enum Environment {
-    DXE,
-    PATINA,
-}
-
 // Global variable representing the current version of the extension.
 declare var APP_VERSION: string;
-
-// Global variable representing the current environment in which the extension is running.
-declare var ENVIRONMENT: Environment;
 
 // Global variable representing the name of the module containing the Patina Core (`patina_dxe_core`).
 declare var PATINA_MODULE: string | null;

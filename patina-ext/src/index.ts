@@ -25,20 +25,5 @@ function initializeScript(): any[] {
 // Perform environment detection and initialization of global variables used across the extension
 function initialize() {
     globalThis.APP_VERSION = "0.1.0";
-    globalThis.ENVIRONMENT = Environment.DXE;
-    globalThis.PATINA_MODULE = null;
-
-    // Check if we're running with a Patina DXE Core. If we are not, this reduces the functionality of the extension.
-    if (monitorCommand("ExdiDbgType")[0] === "UEFI") {
-        const output = monitorCommand("?")[0];
-        if (output.includes("Rust Debugger") || output.includes("Patina Debugger")) {
-            globalThis.ENVIRONMENT = Environment.PATINA;
-            // We know the GCD symbol path exists in the Patina environment, so we can directly query it to find the module name.
-            globalThis.PATINA_MODULE = getModule("patina_dxe_core::GCD");
-        }
-    }
-
-    host.diagnostics.debugLog(`App Version: ${APP_VERSION}\n`);
-    host.diagnostics.debugLog(`Environment: ${Environment[ENVIRONMENT]}\n`);
-    host.diagnostics.debugLog(`Patina Core: ${PATINA_MODULE}\n`);
+    globalThis.PATINA_MODULE = getModule("patina_dxe_core::GCD");
 }
