@@ -46,7 +46,7 @@ jobs:
         run: msbuild UefiDbgExt\uefiext.vcxproj -property:Configuration=${{ matrix.configuration }} -property:Platform=${{ matrix.platform }}
 
       - name: Build Javascript Extension
-        run: npm install && npx tsc
+        run: npx tsc
         working-directory: patina-ext
 
       - name: Publish Binary
