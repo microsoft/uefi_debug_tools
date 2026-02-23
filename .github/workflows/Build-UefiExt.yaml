@@ -46,7 +46,8 @@ jobs:
         run: msbuild UefiDbgExt\uefiext.vcxproj -property:Configuration=${{ matrix.configuration }} -property:Platform=${{ matrix.platform }}
 
       - name: Build Javascript Extension
-        run: npm install && npm run build --workspace patina-ext
+        run: npm install && npx tsc
+        working-directory: patina-ext
 
       - name: Publish Binary
         if: ${{ matrix.configuration == 'Release' && github.event_name != 'pull_request' }}
