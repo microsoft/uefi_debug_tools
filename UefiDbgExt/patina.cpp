@@ -25,27 +25,31 @@ Abstract:
 /**
  * Builds a command string with quoted arguments from a space-separated argument string.
  *
- * 
+ *
  * @param baseCommand The base command name (e.g., "!gcd")
  * @param args Space-separated arguments to be quoted and appended
  * @return Complete command string with quoted arguments
  */
-std::string BuildQuotedCommand(const std::string& baseCommand, PCSTR args)
+std::string
+BuildQuotedCommand (
+  const std::string  &baseCommand,
+  PCSTR              args
+  )
 {
-    std::string command = baseCommand;
-    
-    if (args && *args) {
-        std::string argsStr(args);
-        std::istringstream iss(argsStr);
-        std::string token;
-        
-        // Parse each argument and wrap in quotes
-        while (iss >> token) {
-            command += " \"" + token + "\"";
-        }
+  std::string  command = baseCommand;
+
+  if (args && *args) {
+    std::string         argsStr (args);
+    std::istringstream  iss (argsStr);
+    std::string         token;
+
+    // Parse each argument and wrap in quotes
+    while (iss >> token) {
+      command += " \"" + token + "\"";
     }
-    
-    return command;
+  }
+
+  return command;
 }
 
 //
@@ -58,23 +62,23 @@ gcd (
   PCSTR           args
   )
 {
-    INIT_API ();
+  INIT_API ();
 
-    if (gUefiEnv == PATINA) {
-      // Build command string with quoted arguments
-      std::string command = BuildQuotedCommand("!gcd", args);
-      
-      g_ExtControl->Execute (
-                      DEBUG_OUTCTL_ALL_CLIENTS,
-                      command.c_str(),
-                      DEBUG_EXECUTE_DEFAULT
-                      );
-      // Forward the command to the Patina extension.
-    } else {
-      dprintf ("Not supported for this environment!\n");
-      return ERROR_NOT_SUPPORTED;
-    }
+  if (gUefiEnv == PATINA) {
+    // Build command string with quoted arguments
+    std::string  command = BuildQuotedCommand ("!gcd", args);
 
-    EXIT_API ();
-    return S_OK;
+    g_ExtControl->Execute (
+                    DEBUG_OUTCTL_ALL_CLIENTS,
+                    command.c_str (),
+                    DEBUG_EXECUTE_DEFAULT
+                    );
+    // Forward the command to the Patina extension.
+  } else {
+    dprintf ("Not supported for this environment!\n");
+    return ERROR_NOT_SUPPORTED;
+  }
+
+  EXIT_API ();
+  return S_OK;
 }

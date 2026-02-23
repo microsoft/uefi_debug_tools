@@ -120,8 +120,8 @@ FormatAddress (
 
 std::string
 BuildQuotedCommand (
-  const std::string&  baseCommand,
-  PCSTR               args
+  const std::string  &baseCommand,
+  PCSTR              args
   );
 
 ULONG64
