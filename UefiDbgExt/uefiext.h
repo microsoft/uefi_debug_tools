@@ -118,6 +118,12 @@ FormatAddress (
   __in ULONGLONG  Address
   );
 
+std::string
+BuildQuotedCommand (
+  const std::string&  baseCommand,
+  PCSTR               args
+  );
+
 ULONG64
 GetRegisterValue (
   __in PCSTR  Name

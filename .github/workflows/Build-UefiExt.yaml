@@ -17,6 +17,9 @@ on:
   release:
     types: [published]
 
+env:
+  PATINA_OUTPUT_DIR: patina-ext\dist\PatinaExt.js
+
 jobs:
   build:
     strategy:
@@ -33,21 +36,31 @@ jobs:
 
       - name: Setup MsBuild
         uses: microsoft/setup-msbuild@v2
+      
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-      - name: Build
+      - name: Build DLL
         run: msbuild UefiDbgExt\uefiext.vcxproj -property:Configuration=${{ matrix.configuration }} -property:Platform=${{ matrix.platform }}
+
+      - name: Build Javascript Extension
+        run: npm install && npm run build --workspace patina-ext
 
       - name: Publish Binary
         if: ${{ matrix.configuration == 'Release' && github.event_name != 'pull_request' }}
         uses: actions/upload-artifact@v4
         with:
           name: UefiDbgExt-${{ matrix.platform }}-${{ matrix.configuration }}
-          path: UefiDbgExt\${{ matrix.platform }}\${{ matrix.configuration }}\uefiext.dll
+          path: |
+            UefiDbgExt\${{ matrix.platform }}\${{ matrix.configuration }}\uefiext.dll
+            ${{ env.PATINA_OUTPUT_DIR }}
 
       - name: Publish Release Asset
         if: ${{ matrix.configuration == 'Release' && github.event_name == 'release' }}
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          Compress-Archive -Path UefiDbgExt\${{ matrix.platform }}\${{ matrix.configuration }}\uefiext.dll -DestinationPath UefiExt_${{ matrix.platform }}.zip
+          Compress-Archive -Path UefiDbgExt\${{ matrix.platform }}\${{ matrix.configuration }}\uefiext.dll, ${{ env.PATINA_OUTPUT_DIR }} -DestinationPath UefiExt_${{ matrix.platform }}.zip
           gh release upload ${{ github.event.release.tag_name }} UefiExt_${{ matrix.platform }}.zip

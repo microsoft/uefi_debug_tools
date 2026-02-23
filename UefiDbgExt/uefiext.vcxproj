@@ -279,6 +279,7 @@
     <ClCompile Include="handles.cpp" />
     <ClCompile Include="efiutil.cpp" />
     <ClCompile Include="eficompress.cpp" />
+    <ClCompile Include="patina.cpp" />
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />

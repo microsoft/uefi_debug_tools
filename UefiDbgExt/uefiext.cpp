@@ -164,6 +164,7 @@ help (
     "  linkedlist          - Parses a UEFI style linked list of entries.\n"
     "  efierror            - Translates an EFI error code.\n"
     "  advlog              - Prints the advanced logger memory log.\n"
+    "  gcd                 - Commands for dumping GCD information (Patina Only).\n"
     "\nUEFI Debugger:\n"
     "  info                - Queries information about the UEFI debugger\n"
     "  monitor             - Sends direct monitor commands\n"
@@ -246,19 +247,20 @@ uefiext_init (
                       DEBUG_EXECUTE_DEFAULT
                       );
     }
-  }
 
-  g_ExtControl->Execute (
-    DEBUG_OUTCTL_THIS_CLIENT,
-    ".scriptload PatinaExt.js",
-    DEBUG_EXECUTE_DEFAULT
+    // Load and initialize the Patina extension script.
+    g_ExtControl->Execute (
+                    DEBUG_OUTCTL_ALL_CLIENTS,
+                    ".scriptload PatinaExt.js",
+                    DEBUG_EXECUTE_DEFAULT
     );
   
-  g_ExtControl->Execute (
-    DEBUG_OUTCTL_THIS_CLIENT,
-    "!__patina_ext_init",
-    DEBUG_EXECUTE_DEFAULT
+    g_ExtControl->Execute (
+                    DEBUG_OUTCTL_ALL_CLIENTS,
+                    "!__patina_ext_init",
+                    DEBUG_EXECUTE_DEFAULT
     );
+  }
 
   EXIT_API ();
 
