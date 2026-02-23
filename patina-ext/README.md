@@ -24,6 +24,7 @@ As this is a javascript / typescript project, npm is needed.
 1. `> cd patina-ext`
 2. `> npm install`
 3. `> npm run build`
+4. `> npm run deploy`
 
 ### Function Wrapping
 
