@@ -58,6 +58,6 @@ function inspectObject(obj: any, objName = "object") {
 
 // Utility function to execute a monitor command and return the output as an array of strings
 function monitorCommand(command: string): string[] {
-    const cmd = `!monitor ${command}`;
+    const cmd = `!uefiext.monitor ${command}`;
     return host.namespace.Debugger.Utility.Control.ExecuteCommand(cmd);
 }

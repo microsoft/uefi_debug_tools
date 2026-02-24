@@ -10,6 +10,11 @@ environment and may contain specifics for many different projects.
 The UEFI Windbg Extension is a plugin to add support for the UEFI firmware context.
 See the [UEFI Extension Readme](UefiDbgExt/readme.md) for more details.
 
+## Patina Extension
+
+The Patina Extension is a plugin to add support for the Patina firmware context.
+See the [Patina Extension Readme](patina-ext/README.md) for more details.
+
 ## Scripts
 
 This repo also includes some scripts that can be useful in UEFI firmware debugging.

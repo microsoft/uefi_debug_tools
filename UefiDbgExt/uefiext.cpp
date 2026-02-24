@@ -18,6 +18,7 @@ Abstract:
 #include <vector>
 
 UEFI_ENV  gUefiEnv = DXE;
+BOOL      gPatinaExtLoaded = FALSE;
 ULONG     g_TargetMachine;
 
 HRESULT
@@ -164,7 +165,14 @@ help (
     "  linkedlist          - Parses a UEFI style linked list of entries.\n"
     "  efierror            - Translates an EFI error code.\n"
     "  advlog              - Prints the advanced logger memory log.\n"
-    "  gcd                 - Commands for dumping GCD information (Patina Only).\n"
+    );
+
+  // Only show Patina-specific commands if the extension is loaded
+  if (gPatinaExtLoaded) {
+    dprintf ("  gcd                 - Commands for dumping GCD information (Patina Only).\n");
+  }
+
+  dprintf (
     "\nUEFI Debugger:\n"
     "  info                - Queries information about the UEFI debugger\n"
     "  monitor             - Sends direct monitor commands\n"
@@ -176,6 +184,30 @@ help (
   EXIT_API ();
 
   return S_OK;
+}
+
+VOID
+patinaext_init (
+  PDEBUG_CLIENT4  Client
+  )
+{
+  PCSTR  Output;
+
+  Output = ExecuteCommandWithOutput (Client, ".scriptload PatinaExt.js");
+
+  if (strstr (Output, "JavaScript script successfully loaded") == NULL) {
+    return;
+  }
+
+  Output = ExecuteCommandWithOutput (Client, "!__patina_ext_init");
+
+  if (strstr (Output, "Patina extension initialized.") == NULL) {
+    return;
+  }
+
+  gPatinaExtLoaded = TRUE;
+
+  return;
 }
 
 HRESULT CALLBACK
@@ -248,18 +280,10 @@ uefiext_init (
                       );
     }
 
-    // Load and initialize the Patina extension script.
-    g_ExtControl->Execute (
-                    DEBUG_OUTCTL_ALL_CLIENTS,
-                    ".scriptload PatinaExt.js",
-                    DEBUG_EXECUTE_DEFAULT
-                    );
-
-    g_ExtControl->Execute (
-                    DEBUG_OUTCTL_ALL_CLIENTS,
-                    "!__patina_ext_init",
-                    DEBUG_EXECUTE_DEFAULT
-                    );
+    if (gUefiEnv == PATINA) {
+      patinaext_init (Client);
+      dprintf ("Patina extension loaded: %s\n", gPatinaExtLoaded ? "Yes" : "No");
+    }
   }
 
   EXIT_API ();

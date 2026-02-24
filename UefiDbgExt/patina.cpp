@@ -64,7 +64,7 @@ gcd (
 {
   INIT_API ();
 
-  if (gUefiEnv == PATINA) {
+  if (gPatinaExtLoaded) {
     // Build command string with quoted arguments
     std::string  command = BuildQuotedCommand ("!__gcd", args);
 

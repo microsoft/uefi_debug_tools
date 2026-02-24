@@ -39,6 +39,7 @@ typedef enum _UEFI_ENV {
 } UEFI_ENV;
 
 extern UEFI_ENV  gUefiEnv;
+extern BOOL      gPatinaExtLoaded;
 
 //
 // EFI tables structures and functions.
