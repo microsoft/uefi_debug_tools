@@ -30,6 +30,7 @@ EXPORTS
     readmsr
     reboot
     setenv
+    patinainit
     gcd
 
 ;--------------------------------------------------------------------

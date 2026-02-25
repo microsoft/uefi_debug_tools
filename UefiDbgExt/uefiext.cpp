@@ -17,7 +17,7 @@ Abstract:
 #include "uefiext.h"
 #include <vector>
 
-UEFI_ENV  gUefiEnv = DXE;
+UEFI_ENV  gUefiEnv         = DXE;
 BOOL      gPatinaExtLoaded = FALSE;
 ULONG     g_TargetMachine;
 
@@ -186,30 +186,6 @@ help (
   return S_OK;
 }
 
-VOID
-patinaext_init (
-  PDEBUG_CLIENT4  Client
-  )
-{
-  PCSTR  Output;
-
-  Output = ExecuteCommandWithOutput (Client, ".scriptload PatinaExt.js");
-
-  if (strstr (Output, "JavaScript script successfully loaded") == NULL) {
-    return;
-  }
-
-  Output = ExecuteCommandWithOutput (Client, "!__patina_ext_init");
-
-  if (strstr (Output, "Patina extension initialized.") == NULL) {
-    return;
-  }
-
-  gPatinaExtLoaded = TRUE;
-
-  return;
-}
-
 HRESULT CALLBACK
 uefiext_init (
   PDEBUG_CLIENT4  Client,
@@ -281,7 +257,12 @@ uefiext_init (
     }
 
     if (gUefiEnv == PATINA) {
-      patinaext_init (Client);
+      INIT_API (); // The other extension commands may call `EXIT_API()`, so we need to re-initialize.
+      g_ExtControl->Execute (
+                      DEBUG_OUTCTL_THIS_CLIENT,
+                      "!uefiext.patinainit",
+                      DEBUG_EXECUTE_DEFAULT
+                      );
       dprintf ("Patina extension loaded: %s\n", gPatinaExtLoaded ? "Yes" : "No");
     }
   }

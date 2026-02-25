@@ -3,28 +3,37 @@
 // Copyright (c) Microsoft Corporation.
 // SPDX-License-Identifier: BSD-2-Clause-Patent
 
-// Returns a static symbol by name and returns it as a host object.
+// Returns the module name that contains the specified symbol, or null if not found.
 //
-// Returns null if the symbol or module is not found
-function getStatic(name: string): any | null {
-    const module = getModule(name);
+// Calling `host.getModuleSymbol` requires loading the module, which can be expensive. `ignore_deffered` allows
+// skipping modules that are marked as deferred, e.g. not yet loaded.
+function getModule(name: string, ignore_deferred: boolean = true): string | null {
+    const modules = host.namespace.Debugger.Utility.Control.ExecuteCommand("lm");
 
-    if (!module) {
-        return null;
+    for (const line of [...modules].reverse()) {
+        if (ignore_deferred && line.includes("deferred")) {
+            continue;
+        }
+
+        // Line format:
+        // 00000000`7e8e8000 00000000`7eab4000   qemu_q35_dxe_core C (private pdb symbols)  ...
+        const parts = line.trim().split(/\s+/);
+        if (parts.length >= 3) {
+            const moduleName = parts[2];
+            host.diagnostics.debugLog(`Checking module: ${moduleName}\n`);
+
+            try {
+                // getModuleSymbol will throw if the symbol is not found in the module
+                host.getModuleSymbol(moduleName, name);
+                return moduleName;
+            }
+            catch (e: any) {
+                continue;
+            }
+        }
     }
 
-    return host.getModuleSymbol(module, name);
-}
-
-// Returns the module name that contains the specified symbol, or null if not found
-function getModule(name: string): string | null {
-    const line = host.namespace.Debugger.Utility.Control.ExecuteCommand(`x *!${name}`)[0];
-
-    if (!line) {
-        return null;
-    }
-
-    return line.split(" ")[1].split("!")[0];
+    return null;
 }
 
 // Utility function to inspect an object and log its properties and their types

@@ -67,18 +67,19 @@ namespace Visualizers.Collections {
                 return; // Empty tree
             }
 
-            // Use a recursive generator for in-order traversal
-            function* traverse(node: Node | null): Generator<Node> {
-                if (!node) {
-                    return;
+            // Iterative in-order traversal using an explicit stack
+            const stack: Node[] = [];
+            let current: Node | null = root;
+
+            while (current || stack.length > 0) {
+                while (current) {
+                    stack.push(current);
+                    current = current.left_node;
                 }
-
-                yield* traverse(node.left_node);
-                yield node.data;
-                yield* traverse(node.right_node);
+                current = stack.pop()!;
+                yield current.data;
+                current = current.right_node;
             }
-
-            yield* traverse(root);
         }
     }
 

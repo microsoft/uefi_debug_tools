@@ -57,28 +57,64 @@ BuildQuotedCommand (
 //
 
 HRESULT CALLBACK
+patinainit (
+  PDEBUG_CLIENT4  Client,
+  PCSTR           args
+  )
+{
+  PCSTR    Output;
+  HRESULT  hr = S_OK;
+
+  INIT_API ();
+
+  Output = ExecuteCommandWithOutput (Client, ".scriptload PatinaExt.js");
+  if (strstr (Output, "JavaScript script successfully loaded") == NULL) {
+    dprintf ("Failed to load PatinaExt.js\n");
+    hr = E_FAIL;
+    goto Cleanup;
+  }
+
+  Output = ExecuteCommandWithOutput (Client, "!__patina_ext_init");
+  if (strstr (Output, "Patina extension initialized.") == NULL) {
+    dprintf ("Failed to initialize Patina extension\n");
+    hr = E_FAIL;
+    goto Cleanup;
+  }
+
+  gPatinaExtLoaded = TRUE;
+
+Cleanup:
+  EXIT_API ();
+  return hr;
+}
+
+HRESULT CALLBACK
 gcd (
   PDEBUG_CLIENT4  Client,
   PCSTR           args
   )
 {
+  HRESULT  hr = S_OK;
+
   INIT_API ();
 
   if (gPatinaExtLoaded) {
-    // Build command string with quoted arguments
     std::string  command = BuildQuotedCommand ("!__gcd", args);
 
-    g_ExtControl->Execute (
-                    DEBUG_OUTCTL_ALL_CLIENTS,
-                    command.c_str (),
-                    DEBUG_EXECUTE_DEFAULT
-                    );
-    // Forward the command to the Patina extension.
+    if ((hr = g_ExtControl->Execute (
+                              DEBUG_OUTCTL_ALL_CLIENTS,
+                              command.c_str (),
+                              DEBUG_EXECUTE_DEFAULT
+                              )) != S_OK)
+    {
+      goto Cleanup;
+    }
   } else {
-    dprintf ("Not supported for this environment!\n");
-    return ERROR_NOT_SUPPORTED;
+    dprintf ("Command not supported for this environment!\n");
+    hr = ERROR_NOT_SUPPORTED;
   }
 
+Cleanup:
   EXIT_API ();
-  return S_OK;
+  return hr;
 }
