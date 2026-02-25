@@ -1,0 +1,35 @@
+#
+# GitHub Action Workflow for checking code formatting with Prettier.
+#
+# Copyright (c) Microsoft Corporation
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+
+name: "Prettier Format Check"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  prettier-check:
+    runs-on: windows-latest
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v6
+    
+      - name: Setup node
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+    
+      - name: Install npm dependencies
+        run: npm install
+        working-directory: patina-ext
+
+      - name: Run Prettier check
+        run: npm run format:check
