@@ -33,3 +33,4 @@ jobs:
 
       - name: Run Prettier check
         run: npm run format:check
+        working-directory: patina-ext
