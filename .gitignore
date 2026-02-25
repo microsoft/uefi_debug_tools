@@ -9,3 +9,5 @@ UefiDbgExt/uefiext.vcxproj.user
 
 # Patina Ext Build
 patina-ext/dist/
+patina-ext/node_modules/
+patina-ext/package-lock.json
