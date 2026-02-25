@@ -14,11 +14,11 @@
 /// <reference path="gcd.ts" />
 
 namespace Visualizers {
-    /// Returns all type signature registrations for visualizers in this namespace, including those in sub-namespaces.
-    export function getRegistrations(): any[] {
-        return [
-            ...Visualizers.Collections.getRegistrations(),
-            ...Visualizers.Gcd.getRegistrations(),
-        ];
-    }
+  /// Returns all type signature registrations for visualizers in this namespace, including those in sub-namespaces.
+  export function getRegistrations(): any[] {
+    return [
+      ...Visualizers.Collections.getRegistrations(),
+      ...Visualizers.Gcd.getRegistrations(),
+    ];
+  }
 }

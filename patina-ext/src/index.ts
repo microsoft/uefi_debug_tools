@@ -15,19 +15,19 @@ declare const host: any;
 
 // Returns an array of all registrations provided by the extension, including visualizers and commands.
 function initializeScript(): any[] {
-    return [
-       new host.functionAlias(initialize, "__patina_ext_init"),
-        ...Visualizers.getRegistrations(),
-        ...Commands.getCommands(),
-    ];
+  return [
+    new host.functionAlias(initialize, "__patina_ext_init"),
+    ...Visualizers.getRegistrations(),
+    ...Commands.getCommands(),
+  ];
 }
 
 // Perform environment detection and initialization of global variables used across the extension
 function initialize(): string {
-    globalThis.APP_VERSION = "0.1.0";
-    globalThis.PATINA_MODULE = getModule("patina_dxe_core::GCD");
-    if (!globalThis.PATINA_MODULE) {
-        return "Failed to locate Patina module.";
-    }
-    return "Patina extension initialized.";
+  globalThis.APP_VERSION = "0.1.0";
+  globalThis.PATINA_MODULE = getModule("patina_dxe_core::GCD");
+  if (!globalThis.PATINA_MODULE) {
+    return "Failed to locate Patina module.";
+  }
+  return "Patina extension initialized.";
 }

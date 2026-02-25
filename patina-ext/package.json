@@ -5,11 +5,14 @@
   "main": "PatinaExt.js",
   "scripts": {
     "build": "tsc",
-    "deploy": "powershell Move-Item -Path 'dist/PatinaExt.js' -Destination \"C:/Users/$Env:UserName/AppData/Local/DBG/EngineExtensions/\" -Force"
+    "deploy": "powershell Move-Item -Path 'dist/PatinaExt.js' -Destination \"C:/Users/$Env:UserName/AppData/Local/DBG/EngineExtensions/\" -Force",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
   },
   "devDependencies": {
     "typescript": "^5.3.0",
-    "@types/node": "^20.0.0"
+    "@types/node": "^20.0.0",
+    "prettier": "^3.0.0"
   },
   "keywords": [
     "uefi",

@@ -9,7 +9,7 @@ While the javascript extension is standalone, the `UefiDbgExt` DLL wraps it as a
 `!uefiext.init` is run, and will pass through commands from the DLL to the script (e.g. calling `!uefiext.gcd` calls
 `!__gcd`).
 
-By default, compilation and usage of this extension is managed via the `UefiDbgExt` DLL; review the 
+By default, compilation and usage of this extension is managed via the `UefiDbgExt` DLL; review the
 [UefiDbgExt Documentation](https://github.com/microsoft/uefi_debug_tools/blob/main/UefiDbgExt/readme.md) for a unified
 experience.
 
@@ -33,7 +33,7 @@ and visualizers into a single array that WinDbg processes during extension loadi
 
 The [commands](patina-ext/src/commands) directory contains all interactive commands that users can execute from the
 debugger command line. Each command is implemented as a function and registered as a function alias through
-`host.functionAlias()`. 
+`host.functionAlias()`.
 
 - [commands/index.ts](patina-ext/src/commands/index.ts) acts as the central registry, providing a `getCommands()`
   function that returns all available command function aliases
@@ -79,15 +79,15 @@ below simply moves the compiled javascript extension to "C:/Users/$Env:UserName/
 ### Function Wrapping
 
 Javascript extensions do not have a way to scope commands like the DLL's do (e.g. we cannot do `!uefiext.<cmd>`) as
-they simply register function aliases. Due to this, it is important to use uncommon names to ensure there is no 
-conflict (e.g. `!__gcd` instead of `!gcd`). We then wrap the function alias call in a `UefiDbgExt` DLL command, 
+they simply register function aliases. Due to this, it is important to use uncommon names to ensure there is no
+conflict (e.g. `!__gcd` instead of `!gcd`). We then wrap the function alias call in a `UefiDbgExt` DLL command,
 providing a unified experience through `!uefiext.<cmd>`. For an example, please refer to the `__gcd` method in
 `patina-ext/src/commands/index.ts` and it's wrapper in `UefiDbgExt/patina.cpp`.
 
 1. Create the new function.
 1. Register the function alias via `host.functionAlias()`.
-2. Define a wrapper function in `UefiDbgExt\patina.cpp` that calls the provided function alias.
-3. Update `uefiext.def` with the new function export.
+1. Define a wrapper function in `UefiDbgExt\patina.cpp` that calls the provided function alias.
+1. Update `uefiext.def` with the new function export.
 
 ### Standalone Usage
 
