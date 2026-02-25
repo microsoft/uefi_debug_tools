@@ -295,4 +295,17 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
+  <PropertyGroup>
+    <BuildPatinaExtension Condition="'$(BuildPatinaExtension)'==''">false</BuildPatinaExtension>
+    <LoadPatinaExtension Condition="'$(LoadPatinaExtension)'==''">false</LoadPatinaExtension>
+  </PropertyGroup>
+  <Target Name="BuildPatinaExtension" AfterTargets="Build" Condition="'$(BuildPatinaExtension)'=='true'">
+    <Message Importance="high" Text="Building Patina Extension (npm run build)..." />
+    <Exec Command="npm install" WorkingDirectory="$(ProjectDir)..\patina-ext" />
+    <Exec Command="npm run build" WorkingDirectory="$(ProjectDir)..\patina-ext" />
+  </Target>
+  <Target Name="DeployPatinaExtension" AfterTargets="BuildPatinaExtension" Condition="'$(DeployPatinaExtension)'=='true'">
+    <Message Importance="high" Text="Loading Patina Extension into debugger..." />
+    <Exec Command="npm run deploy" WorkingDirectory="$(ProjectDir)..\patina-ext" />
+  </Target>
 </Project>

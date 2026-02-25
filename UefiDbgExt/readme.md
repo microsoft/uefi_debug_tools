@@ -25,6 +25,14 @@ prompt, navigate to the folder and run `msbuild`.
 The project can also be loaded and built in Visual Studio using the solution
 file. This project requires the Windows SDK and the Windows Driver Kit.
 
+If you wish to locally build and use the [Patina extension](../patina-ext/README.md),
+then use the following command to do a comprehensive build. Note that this requires
+npm be installed.
+
+```powershell
+msbuild -property:Configuration=Release -property:Platform=x64 -property:BuildPatinaExtension=true -property:DeployPatinaExtension=true
+```
+
 ## Installing the Extension
 
 Debugger extensions can be loaded into windbg several ways. The easiest is to download
