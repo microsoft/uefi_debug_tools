@@ -1,4 +1,4 @@
-// A namespace for all visualizers related to the `patina-internal_collections` crate.
+// A namespace for all visualizers related to the `patina_internal_collections` crate.
 //
 // Copyright (c) Microsoft Corporation.
 // SPDX-License-Identifier: BSD-2-Clause-Patent
