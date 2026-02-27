@@ -424,7 +424,7 @@ advlog (
   if (Version == 4) {
     GetFieldValue (InfoAddress, "ADVANCED_LOGGER_INFO", "LogBuffer", EntryAddress);
     GetFieldValue (InfoAddress, "ADVANCED_LOGGER_INFO", "LogCurrent", EndAddress);
-  } else if (Version == 5) {
+  } else if ((Version == 5) || (Version == 6)) {
     EntryAddress = InfoAddress + Info.LogBufferOffset;
     EndAddress   = InfoAddress + Info.LogCurrentOffset;
   } else {
