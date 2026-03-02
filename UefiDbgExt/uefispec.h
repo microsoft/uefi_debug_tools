@@ -261,4 +261,85 @@ typedef struct {
 
 #define EFI_ERROR(a)  (((EFI_STATUS)(a)) >= 0x8000000000000000)
 
+typedef enum {
+  ///
+  /// An I/O region that is visible to the boot processor. However, there are no system
+  /// components that are currently decoding this I/O region.
+  ///
+  EfiGcdIoTypeNonExistent,
+  ///
+  /// An I/O region that is visible to the boot processor. This I/O region is currently being
+  /// decoded by a system component, but the I/O region cannot be used to access I/O devices.
+  ///
+  EfiGcdIoTypeReserved,
+  ///
+  /// An I/O region that is visible to the boot processor. This I/O region is currently being
+  /// decoded by a system component that is producing I/O ports that can be used to access I/O devices.
+  ///
+  EfiGcdIoTypeIo,
+  EfiGcdIoTypeMaximum
+} EFI_GCD_IO_TYPE;
+
+///
+/// Global Coherencey Domain types - Memory type.
+///
+typedef enum {
+  ///
+  /// A memory region that is visible to the boot processor. However, there are no system
+  /// components that are currently decoding this memory region.
+  ///
+  EfiGcdMemoryTypeNonExistent,
+  ///
+  /// A memory region that is visible to the boot processor. This memory region is being
+  /// decoded by a system component, but the memory region is not considered to be either
+  /// system memory or memory-mapped I/O.
+  ///
+  EfiGcdMemoryTypeReserved,
+  ///
+  /// A memory region that is visible to the boot processor. A memory controller is
+  /// currently decoding this memory region and the memory controller is producing a
+  /// tested system memory region that is available to the memory services.
+  ///
+  EfiGcdMemoryTypeSystemMemory,
+  ///
+  /// A memory region that is visible to the boot processor. This memory region is
+  /// currently being decoded by a component as memory-mapped I/O that can be used to
+  /// access I/O devices in the platform.
+  ///
+  EfiGcdMemoryTypeMemoryMappedIo,
+  ///
+  /// A memory region that is visible to the boot processor.
+  /// This memory supports byte-addressable non-volatility.
+  ///
+  EfiGcdMemoryTypePersistent,
+  //
+  // Keep original one for the compatibility.
+  //
+  EfiGcdMemoryTypePersistentMemory = EfiGcdMemoryTypePersistent,
+  ///
+  /// A memory region that provides higher reliability relative to other memory in the
+  /// system. If all memory has the same reliability, then this bit is not used.
+  ///
+  EfiGcdMemoryTypeMoreReliable,
+  ///
+  /// A memory region that describes system memory that has not been accepted
+  /// by a corresponding call to the underlying isolation architecture.
+  ///
+  EfiGcdMemoryTypeUnaccepted,
+  EfiGcdMemoryTypeMaximum = 7
+} EFI_GCD_MEMORY_TYPE;
+
+typedef struct {
+  UINT64                 Signature;
+  LIST_ENTRY             Link;
+  UINT64                 BaseAddress;
+  UINT64                 EndAddress;
+  UINT64                 Capabilities;
+  UINT64                 Attributes;
+  EFI_GCD_MEMORY_TYPE    GcdMemoryType;
+  EFI_GCD_IO_TYPE        GcdIoType;
+  VOID                   *ImageHandle;
+  VOID                   *DeviceHandle;
+} EFI_GCD_MAP_ENTRY;
+
 #endif // UEFISPEC_H_

@@ -16,6 +16,12 @@ Abstract:
 
 #include "uefiext.h"
 
+#define EFI_MEMORY_WP               0x0000000000001000ULL
+#define EFI_MEMORY_RP               0x0000000000002000ULL
+#define EFI_MEMORY_XP               0x0000000000004000ULL
+#define EFI_MEMORY_RO               0x0000000000020000ULL
+#define EFI_MEMORY_SKIP_ATTRIBUTES  (EFI_MEMORY_WP | EFI_MEMORY_RP | EFI_MEMORY_XP | EFI_MEMORY_RO)
+
 //
 // **************************************************************  Definitions
 //
@@ -89,8 +95,20 @@ PCSTR  MemoryTypeString[] = {
   "EfiPalCode",
   "EfiPersistentMemory"
 };
-
 #define MEMORY_TYPE_COUNT  (sizeof(MemoryTypeString) / sizeof(MemoryTypeString[0]))
+
+PCSTR  GcdMemoryTypeString[] = {
+  "EfiGcdMemoryTypeNonExistent",
+  "EfiGcdMemoryTypeReserved",
+  "EfiGcdMemoryTypeSystemMemory",
+  "EfiGcdMemoryTypeMemoryMappedIo",
+  "EfiGcdMemoryTypePersistent",
+  "EfiGcdMemoryTypePersistentMemory",
+  "EfiGcdMemoryTypeMoreReliable",
+  "EfiGcdMemoryTypeUnaccepted",
+  "EfiGcdMemoryTypeMaximum"
+};
+#define GCD_MEMORY_TYPE_COUNT  (sizeof(GcdMemoryTypeString) / sizeof(GcdMemoryTypeString[0]))
 
 PSTR  HobTypes[] = {
   NULL,                                     // 0x0000
@@ -130,6 +148,85 @@ PCSTR  PhaseStrings[] = {
 //
 // *******************************************************  External Functions
 //
+HRESULT CALLBACK
+gcd (
+  PDEBUG_CLIENT4  Client,
+  PCSTR           args
+  )
+{
+  HRESULT  hr = S_OK;
+
+  INIT_API ();
+
+  if (gPatinaExtLoaded) {
+    std::string  command = BuildQuotedCommand ("!__gcd", args);
+
+    if ((hr = g_ExtControl->Execute (
+                              DEBUG_OUTCTL_ALL_CLIENTS,
+                              command.c_str (),
+                              DEBUG_EXECUTE_DEFAULT
+                              )) != S_OK)
+    {
+      goto Cleanup;
+    }
+  } else {
+    ULONG64  HeadAddress;
+    ULONG64  GcdEntry;
+
+    ULONG64  BaseAddress;
+    ULONG64  EndAddress;
+    ULONG64  Capabilities;
+    ULONG64  Attributes;
+    UINT64   GcdMemoryType;
+    BOOLEAN  Audit;
+
+    INIT_API ();
+
+    if (gUefiEnv != DXE) {
+      dprintf ("Only supported for DXE!\n");
+      return ERROR_NOT_SUPPORTED;
+    }
+
+    dprintf ("%s\n", args);
+    Audit = (args != NULL) && (strstr (args, "audit") != NULL);
+
+    HeadAddress = GetExpression ("&mGcdMemorySpaceMap");
+    if (HeadAddress == NULL) {
+      dprintf ("Failed to find mGcdMemorySpaceMap!\n");
+      return ERROR_NOT_FOUND;
+    }
+
+    dprintf ("    BaseAddress       EndAddress      Capabilities    Attributes       GcdMemoryType   \n");
+    dprintf ("-------------------------------------------------------------------------------------------------------\n");
+    GcdEntry = 0;
+    while ((GcdEntry = GetNextListEntry (HeadAddress, "EFI_GCD_MAP_ENTRY", "Link", GcdEntry)) != 0) {
+      GetFieldValue (GcdEntry, "EFI_GCD_MAP_ENTRY", "Attributes ", Attributes);
+
+      if (Audit && ((Attributes & EFI_MEMORY_SKIP_ATTRIBUTES) != 0)) {
+        continue;
+      }
+
+      GetFieldValue (GcdEntry, "EFI_GCD_MAP_ENTRY", "BaseAddress", BaseAddress);
+      GetFieldValue (GcdEntry, "EFI_GCD_MAP_ENTRY", "EndAddress", EndAddress);
+      GetFieldValue (GcdEntry, "EFI_GCD_MAP_ENTRY", "Capabilities", Capabilities);
+      GetFieldValue (GcdEntry, "EFI_GCD_MAP_ENTRY", "GcdMemoryType", GcdMemoryType);
+      dprintf (
+        "    %016I64x  %016I64x  %016I64x  %016I64x %s\n",
+        BaseAddress,
+        EndAddress,
+        Capabilities,
+        Attributes,
+        GcdMemoryType < GCD_MEMORY_TYPE_COUNT ? GcdMemoryTypeString[GcdMemoryType] : "Unknown"
+        );
+    }
+
+    dprintf ("-------------------------------------------------------------------------------------------------------\n");
+  }
+
+Cleanup:
+  EXIT_API ();
+  return hr;
+}
 
 HRESULT CALLBACK
 memorymap (
@@ -305,7 +402,7 @@ advlog (
   ULONG                             TokenCount;
   ULONG                             TokenIndex;
   PCSTR                             HelpString       = "Usage: !advlog [-t[bytes]] [address]\n";
-  CONST UINT32                      MessageSignature = 0x324d4c41; // 'ALM2'
+  CONST UINT32                      MessageSignature = 0x324d4c41;   // 'ALM2'
 
   // NOTE: This implementation is a crude first past, The following should be done
   // in the future.

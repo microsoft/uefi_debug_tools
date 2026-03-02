@@ -87,34 +87,3 @@ Cleanup:
   EXIT_API ();
   return hr;
 }
-
-HRESULT CALLBACK
-gcd (
-  PDEBUG_CLIENT4  Client,
-  PCSTR           args
-  )
-{
-  HRESULT  hr = S_OK;
-
-  INIT_API ();
-
-  if (gPatinaExtLoaded) {
-    std::string  command = BuildQuotedCommand ("!__gcd", args);
-
-    if ((hr = g_ExtControl->Execute (
-                              DEBUG_OUTCTL_ALL_CLIENTS,
-                              command.c_str (),
-                              DEBUG_EXECUTE_DEFAULT
-                              )) != S_OK)
-    {
-      goto Cleanup;
-    }
-  } else {
-    dprintf ("Command not supported for this environment!\n");
-    hr = ERROR_NOT_SUPPORTED;
-  }
-
-Cleanup:
-  EXIT_API ();
-  return hr;
-}
