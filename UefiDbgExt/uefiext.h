@@ -95,13 +95,13 @@ ErrorLevelToString (
   UINT32  ErrorLevel
   );
 
-PSTR
+std::string
 ExecuteCommandWithOutput (
   PDEBUG_CLIENT4  Client,
   PCSTR           Command
   );
 
-PSTR
+std::string
 MonitorCommandWithOutput (
   PDEBUG_CLIENT4  Client,
   PCSTR           MonitorCommand,

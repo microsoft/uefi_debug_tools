@@ -454,8 +454,8 @@ GetPageTableRoot (
   _Inout_ PULONG64     VirtualAddress = NULL
   )
 {
-  ULONG64  Root;
-  PCSTR    Regs;
+  ULONG64      Root;
+  std::string  Regs;
 
   Root = 0;
 
@@ -467,7 +467,7 @@ GetPageTableRoot (
       case IMAGE_FILE_MACHINE_ARM64:
       {
         Regs = MonitorCommandWithOutput (Client, Format ("arch regs").c_str (), 0);
-        if (ParseRegsForReg (Regs, "ttbr0_el2", &Root)) {
+        if (ParseRegsForReg (Regs.c_str (), "ttbr0_el2", &Root)) {
           break;
         }
 
@@ -625,7 +625,7 @@ DumpPteX64 (
   ULONG64           SelfMapIndex = 512;
   LONG              TestIndex    = 511;
   ULONG64           TableAddress;
-  PCSTR             CacheType;
+  std::string       CacheTypeResult;
 
   //
   // Get page table root and paging levels.
@@ -884,14 +884,14 @@ PrintAddress:
   PhysicalAddress += PageOffset;
 
   // Get the cache type from MTRRs
-  CacheType = MonitorCommandWithOutput (Client, Format ("arch mtrr %llX", Address).c_str (), 0);
+  CacheTypeResult = MonitorCommandWithOutput (Client, Format ("arch mtrr %llX", Address).c_str (), 0);
 
   // if CacheType has spaces in it, it means the monitor command didn't exist
-  if (strchr (CacheType, ' ') != NULL) {
-    CacheType = "Unknown";
+  if (CacheTypeResult.find (' ') != std::string::npos) {
+    CacheTypeResult = "Unknown";
   }
 
-  DisplayPhysicalAddress (PhysicalAddress, Address, CacheType);
+  DisplayPhysicalAddress (PhysicalAddress, Address, CacheTypeResult.c_str ());
   return;
 }
 
@@ -1043,7 +1043,7 @@ DumpPteArm64 (
   ULONG64             SelfMapIndex = 512;
   LONG                TestIndex    = 511;
   ULONG64             TableAddress;
-  PCSTR               Regs;
+  std::string         Regs;
   std::string         CacheTypeStr = "Unknown";
   PCSTR               CacheType    = "Unknown";
   ULONG               CacheIndex;
@@ -1255,7 +1255,7 @@ PrintAddress:
   // Get the cache type from MAIR
   Regs = MonitorCommandWithOutput (Client, Format ("arch regs").c_str (), 0);
 
-  if (ParseRegsForReg (Regs, "mair_el2", &Mair)) {
+  if (ParseRegsForReg (Regs.c_str (), "mair_el2", &Mair)) {
     CacheTypeStr = GetCacheTypeFromMair (Mair, CacheIndex);
     CacheType    = CacheTypeStr.c_str ();
   }

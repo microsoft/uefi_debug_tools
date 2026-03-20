@@ -192,10 +192,10 @@ uefiext_init (
   PCSTR           args
   )
 {
-  ULONG  TargetClass = 0;
-  ULONG  TargetQual  = 0;
-  ULONG  Mask;
-  PCSTR  Output;
+  ULONG        TargetClass = 0;
+  ULONG        TargetQual  = 0;
+  ULONG        Mask;
+  std::string  Output;
 
   INIT_API ();
 
@@ -221,15 +221,15 @@ uefiext_init (
 
     // Don't run !monitor ? on QEMU targets, this causes a confusion between WinDbg and QEMU and we get
     // corrupted memory reads. It also isn't needed
-    if (strstr (Output, "UEFI") != NULL) {
+    if (Output.find ("UEFI") != std::string::npos) {
       // Detect if this is a UEFI software debugger.
       Output = MonitorCommandWithOutput (Client, "?", 0);
-      if ((strstr (Output, "Rust Debugger") != NULL) ||
-          (strstr (Output, "Patina Debugger") != NULL))
+      if ((Output.find ("Rust Debugger") != std::string::npos) ||
+          (Output.find ("Patina Debugger") != std::string::npos))
       {
         dprintf ("Patina Debugger detected.\n");
         gUefiEnv = PATINA;
-      } else if (strstr (Output, "DXE UEFI Debugger") != NULL) {
+      } else if (Output.find ("DXE UEFI Debugger") != std::string::npos) {
         dprintf ("DXE UEFI Debugger detected.\n");
         gUefiEnv = DXE;
       } else {
@@ -305,22 +305,14 @@ public:
 
 OutputCallbacks  mOutputCallback;
 
-PSTR
+std::string
 ExecuteCommandWithOutput (
   PDEBUG_CLIENT4  Client,
   PCSTR           Command
   )
 {
   PDEBUG_OUTPUT_CALLBACKS  Callbacks;
-  static CHAR              *Output = NULL;
-  SIZE_T                   Offset;
-  SIZE_T                   Length;
-
-  // To avoid complexity of tracking a shifting buffer, easier to just lazily free here.
-  if (Output != NULL) {
-    free (Output);
-    Output = NULL;
-  }
+  std::string              Output;
 
   mResponses.clear ();
 
@@ -333,35 +325,26 @@ ExecuteCommandWithOutput (
                   );
   Client->SetOutputCallbacks (Callbacks);
 
-  Length = 0;
   for (const auto &str : mResponses) {
-    Length += str.length ();
+    Output += str;
   }
 
-  Output = (CHAR *)malloc (Length + 1);
-  Offset = 0;
-  for (const auto &str : mResponses) {
-    memcpy (Output + Offset, str.c_str (), str.length ());
-    Offset += str.length ();
-  }
-
-  Output[Offset] = '\0';
   return Output;
 }
 
-PSTR
+std::string
 MonitorCommandWithOutput (
   PDEBUG_CLIENT4  Client,
   PCSTR           MonitorCommand,
   ULONG           Offset
   )
 {
-  CHAR   Command[512];
-  PSTR   Output;
-  ULONG  Mask;
-  PCSTR  Preamble = "Target command response: ";
-  PCSTR  Ending   = "exdiCmd:";
-  PCSTR  Ok       = "OK\n";
+  CHAR         Command[512];
+  std::string  Output;
+  ULONG        Mask;
+  PCSTR        Preamble = "Target command response: ";
+  PCSTR        Ending   = "exdiCmd:";
+  PCSTR        Ok       = "OK\n";
 
   if (Offset == 0 ) {
     sprintf_s (Command, sizeof (Command), ".exdicmd target:0:%s", MonitorCommand);
@@ -375,19 +358,24 @@ MonitorCommandWithOutput (
   Client->SetOutputMask (Mask);
 
   // Clean up the output.
-  if (strstr (Output, Preamble) != NULL) {
-    Output = strstr (Output, Preamble) + strlen (Preamble);
+  size_t  PreamblePos = Output.find (Preamble);
+
+  if (PreamblePos != std::string::npos) {
+    Output = Output.substr (PreamblePos + strlen (Preamble));
   }
 
-  if (strstr (Output, Ending) != NULL) {
-    *strstr (Output, Ending) = 0;
+  size_t  EndingPos = Output.find (Ending);
+
+  if (EndingPos != std::string::npos) {
+    Output = Output.substr (0, EndingPos);
   }
 
   // If it has the OK string appended to the end, remove it
-  if (strlen (Output) > strlen (Ok)) {
-    size_t  Offset = strlen (Output) - strlen (Ok);
-    if (strcmp (Output + Offset, Ok) == 0) {
-      strcpy_s (Output + Offset, strlen (Ok) + 1, "\n");
+  size_t  OkLen = strlen (Ok);
+
+  if (Output.length () > OkLen) {
+    if (Output.compare (Output.length () - OkLen, OkLen, Ok) == 0) {
+      Output.replace (Output.length () - OkLen, OkLen, "\n");
     }
   }
 
