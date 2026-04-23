@@ -1270,8 +1270,7 @@ PrintAddress:
 
 const PSTR  PteHelp =
   "!pt [-i] VA [PageTableRoot]\n\n\
-    PageTableRoot is optional on X64 but required on ARM64.\n\
-    Run !monitor arch regs to get TTBR0_EL2 value.\n\
+    PageTableRoot can be optionally added to read an uninstalled page table.\n\
     -i: Ignore the self map, this can be used to read an uninstalled page table.\n";
 
 HRESULT CALLBACK
