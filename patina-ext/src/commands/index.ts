@@ -22,11 +22,10 @@ namespace Commands {
 //   - io: Dump the GCD I/O map with details about each I/O block.
 //   - help: Show a help message describing the available subcommands and their usage.
 function __gcd(cmd: any) {
-  if (globalThis.PATINA_MODULE === null) {
-    host.diagnostics.debugLog("Patina Core module not found.\n");
-    return;
+  const module = getModule("patina_dxe_core::GCD");
+  if (!module) {
+    return "Failed to locate Patina module.";
   }
-  const module = globalThis.PATINA_MODULE;
 
   if (cmd === "memory") {
     const query = [
