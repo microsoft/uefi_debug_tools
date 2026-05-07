@@ -76,7 +76,9 @@ namespace Visualizers.Collections {
           current = current.left_node;
         }
         current = stack.pop()!;
-        yield current.data;
+        // Patina's node data is wrapped in MaybeUninit, so we
+        // need to access the value field to get the actual data.
+        yield current.data.value;
         current = current.right_node;
       }
     }

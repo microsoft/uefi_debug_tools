@@ -69,9 +69,9 @@ function __gcd(cmd: any) {
         "  io        - Dump the GCD I/O map with details about each I/O block.\n" +
         "  help      - Show this help message.\n" +
         "\nExample Usage:\n" +
-        '  !gcd "memory"\n' +
-        '  !gcd "io"\n' +
-        '  !gcd "help"\n',
+        "  !gcd memory\n" +
+        "  !gcd io\n" +
+        "  !gcd help\n",
     );
     return;
   }
