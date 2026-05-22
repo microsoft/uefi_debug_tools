@@ -25,9 +25,5 @@ function initializeScript(): any[] {
 // Perform environment detection and initialization of global variables used across the extension
 function initialize(): string {
   globalThis.APP_VERSION = "0.1.0";
-  globalThis.PATINA_MODULE = getModule("patina_dxe_core::GCD");
-  if (!globalThis.PATINA_MODULE) {
-    return "Failed to locate Patina module.";
-  }
   return "Patina extension initialized.";
 }

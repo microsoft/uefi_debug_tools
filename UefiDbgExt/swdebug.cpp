@@ -22,7 +22,7 @@ monitor (
   PCSTR           args
   )
 {
-  PSTR         Response;
+  std::string  Response;
   ULONG        Len;
   const CHAR   *TruncateTag   = "#T#";
   const ULONG  TruncateTagLen = sizeof ("#T#") - 1; // Exclude the null terminator.
@@ -38,16 +38,16 @@ monitor (
 
     // Strip of the trailing newline character if it exists since this in injected
     // by windbg and is not part of the response.
-    Len = (ULONG)strlen (Response);
+    Len = (ULONG)Response.length ();
     if ((Len > 0) && (Response[Len - 1] == '\n')) {
       Len--;
     }
 
     if (Len > TruncateTagLen) {
-      if (strncmp (Response + Len - TruncateTagLen, TruncateTag, TruncateTagLen) == 0) {
+      if (Response.compare (Len - TruncateTagLen, TruncateTagLen, TruncateTag) == 0) {
         // The response was truncated, so we need to read more.
-        Response[Len - TruncateTagLen] = 0; // Remove the truncate tag.
-        dprintf ("%s", Response);
+        Response.resize (Len - TruncateTagLen); // Remove the truncate tag.
+        dprintf ("%s", Response.c_str ());
         Offset += Len - TruncateTagLen;
         continue;
       }
@@ -56,7 +56,7 @@ monitor (
     break;
   }
 
-  dprintf ("%s\n", Response);
+  dprintf ("%s\n", Response.c_str ());
 
   EXIT_API ();
   return S_OK;
@@ -175,12 +175,12 @@ loadcore (
   PCSTR           args
   )
 {
-  HANDLE   hFile = INVALID_HANDLE_VALUE;
-  CHAR     Command[512];
-  PSTR     Response;
-  BYTE     *ImageBuffer     = NULL;
-  BYTE     *CompressedImage = NULL;
-  BOOLEAN  NoGo             = FALSE;
+  HANDLE       hFile = INVALID_HANDLE_VALUE;
+  CHAR         Command[512];
+  std::string  Response;
+  BYTE         *ImageBuffer     = NULL;
+  BYTE         *CompressedImage = NULL;
+  BOOLEAN      NoGo             = FALSE;
 
   INIT_API ();
 
@@ -260,11 +260,11 @@ loadcore (
   // Allocate a transfer buffer in the target.
   sprintf_s (Command, sizeof (Command), "reload alloc_buffer %u", FileSize);
   Response = MonitorCommandWithOutput (Client, Command, 0);
-  ULONG64  TransferBuffer = strtoull (Response, NULL, 16);
+  ULONG64  TransferBuffer = strtoull (Response.c_str (), NULL, 16);
 
   if (TransferBuffer == 0) {
     dprintf ("Failed to allocate target buffer in Patina debugger.\n");
-    dprintf ("    Monitor: %s\n", Response);
+    dprintf ("    Monitor: %s\n", Response.c_str ());
     goto Exit;
   }
 
@@ -311,8 +311,8 @@ loadcore (
   Response = MonitorCommandWithOutput (Client, Command, 0);
 
   // Check if the response contains "success:"
-  if (strstr (Response, "success:") == NULL) {
-    dprintf ("Load command failed. Response: %s\n", Response);
+  if (Response.find ("success:") == std::string::npos) {
+    dprintf ("Load command failed. Response: %s\n", Response.c_str ());
     goto Exit;
   } else {
     dprintf ("Image loaded successfully.\n");
@@ -320,13 +320,13 @@ loadcore (
 
   // Extract the address of the new core from the response.
   ULONG64  RegValue[3];
-  ULONG64  NewCoreAddress = ReadTaggedValue (Response, "success:");
+  ULONG64  NewCoreAddress = ReadTaggedValue (Response.c_str (), "success:");
 
-  RegValue[0] = ReadTaggedValue (Response, "ip:");
-  RegValue[1] = ReadTaggedValue (Response, "sp:");
-  RegValue[2] = ReadTaggedValue (Response, "arg0:");
+  RegValue[0] = ReadTaggedValue (Response.c_str (), "ip:");
+  RegValue[1] = ReadTaggedValue (Response.c_str (), "sp:");
+  RegValue[2] = ReadTaggedValue (Response.c_str (), "arg0:");
   if ((NewCoreAddress == 0) || (RegValue[0] == 0) || (RegValue[1] == 0) || (RegValue[2] == 0)) {
-    dprintf ("Failed to extract details from response: %s\n", Response);
+    dprintf ("Failed to extract details from response: %s\n", Response.c_str ());
     goto Exit;
   }
 

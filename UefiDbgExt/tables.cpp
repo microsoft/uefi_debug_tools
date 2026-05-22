@@ -119,8 +119,8 @@ FindSystemTable (
       return 0;
     }
   } else if (gUefiEnv == PATINA) {
-    PSTR  Response = MonitorCommandWithOutput (g_ExtClient, "system_table_ptr", 0);
-    SystemPtrAddr = strtoull (Response, NULL, 16);
+    std::string  Response = MonitorCommandWithOutput (g_ExtClient, "system_table_ptr", 0);
+    SystemPtrAddr = strtoull (Response.c_str (), NULL, 16);
 
     if (SystemPtrAddr == 0) {
       // if we didn't get the monitor command response, we will try to read the system table pointer from the core

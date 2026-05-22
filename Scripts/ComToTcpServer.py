@@ -88,6 +88,12 @@ _line_buffer_in = ""
 _line_buffer_out = ""
 
 
+def clear_queue(q: queue.Queue) -> None:
+    """Remove all pending items from a queue."""
+    while not q.empty():
+        q.get()
+
+
 def socket_thread() -> None:
     """Thread function that handles TCP socket connections.
 
@@ -108,9 +114,8 @@ def socket_thread() -> None:
         conn, addr = sock.accept()
         script_logger.info(f"Socket Connected - {addr}")
 
-        # clear the out queue before starting a connection
-        while not out_queue.empty():
-            out_queue.get()
+        # Clear pending socket output before starting a new connection.
+        clear_queue(out_queue)
 
         # use a short timeout to move on if no data is ready.
         conn.settimeout(0.01)
@@ -127,6 +132,15 @@ def socket_thread() -> None:
                 data = None
             except Exception:
                 script_logger.info("Socket disconnected.")
+                clear_queue(out_queue)
+                conn.close()
+                connected = False
+                continue
+
+            if data is not None and len(data) == 0:
+                script_logger.info("Socket disconnected.")
+                clear_queue(out_queue)
+                conn.close()
                 connected = False
                 continue
 

@@ -136,6 +136,238 @@ setenv (
   return S_OK;
 }
 
+// Command help information structure
+typedef struct _COMMAND_HELP_INFO {
+  PCSTR    Name;
+  PCSTR    ShortDescription;
+  PCSTR    LongDescription;
+  PCSTR    Usage;
+  PCSTR    Parameters;
+} COMMAND_HELP_INFO;
+
+static const COMMAND_HELP_INFO  CommandHelpTable[] = {
+  // Basic Commands
+  {
+    "help",
+    "Shows this help",
+    "Displays help information for available commands. When called with a\n"
+    "  command name, shows detailed information about that specific command.",
+    "!help [command]",
+    "  command  (optional) - Name of the command to get detailed help for.\n"
+    "                        If omitted, shows the list of all commands."
+  },
+  {
+    "init",
+    "Detects and initializes windbg for debugging UEFI.",
+    "Initializes the UEFI debugger extension. Detects the target environment\n"
+    "  (PEI, DXE, MM, or Patina) and configures the debugger appropriately.\n"
+    "  Also scans for and loads module symbols.",
+    "!init",
+    "  (none)"
+  },
+  {
+    "setenv",
+    "Set the extensions environment mode",
+    "Manually sets the UEFI environment mode. This affects how other commands\n"
+    "  interpret data structures and locate symbols.",
+    "!setenv <environment>",
+    "  environment  (required) - One of: PEI, DXE, MM, patina"
+  },
+  // Module Discovery
+  {
+    "findall",
+    "Attempts to detect environment and load all modules",
+    "Finds the system table and debug image info table, then loads symbols\n"
+    "  for all modules listed in the debug table. Only supported in DXE and\n"
+    "  Patina environments.",
+    "!findall [-r]",
+    "  -r  (optional) - Refresh mode. Uses cached table addresses instead of\n"
+    "                   rescanning for them."
+  },
+  {
+    "findmodule",
+    "Find the currently running module",
+    "Searches backwards from the given address (or current instruction pointer)\n"
+    "  to find a PE/COFF image header and loads symbols for that module.",
+    "!findmodule [address]",
+    "  address  (optional) - Address within the module to find. Defaults to @$ip."
+  },
+  {
+    "elf",
+    "Dumps the headers of an ELF image",
+    "Parses and displays the headers of an ELF format image at the specified\n"
+    "  address.",
+    "!elf <address>",
+    "  address  (required) - Base address of the ELF image."
+  },
+  // Data Parsing
+  {
+    "memorymap",
+    "Prints the current DXE system memory map",
+    "Enumerates and displays the gMemoryMap entries including address ranges,\n"
+    "  attributes, and memory types. Also shows memory usage summary by type.\n"
+    "  Only supported in DXE environment.",
+    "!memorymap",
+    "  (none)"
+  },
+  {
+    "hobs",
+    "Enumerates the hand off blocks",
+    "Walks the HOB (Hand-Off Block) list and displays each HOB entry with its\n"
+    "  type, length, and address. Provides DML links to view HOB details.\n"
+    "  Only supported in DXE environment.",
+    "!hobs [address]",
+    "  address  (optional) - Address of the HOB list. If omitted, attempts to\n"
+    "                        find the HOB list from system configuration tables."
+  },
+  {
+    "protocols",
+    "Lists the protocols from the protocol list.",
+    "Enumerates all protocols registered in the protocol database. Displays\n"
+    "  protocol GUIDs with DML links to view protocol interfaces and notify\n"
+    "  handlers.",
+    "!protocols",
+    "  (none)"
+  },
+  {
+    "pt",
+    "Dumps the page tables for a given address",
+    "Walks the page table hierarchy to show how a virtual address is translated.\n"
+    "  Displays each level of the page table with flags and physical addresses.\n"
+    "  Supports x64 and ARM64 architectures.",
+    "!pt [-i] <VA> [PageTableRoot]",
+    "  -i             (optional) - Ignore the self map, use to read an uninstalled\n"
+    "                              page table or to only check identity mappings.\n"
+    "  VA             (required) - Virtual address to look up.\n"
+    "  PageTableRoot  (optional) - Page table root address. Use this to specify an\n"
+    "                              not installed page table. Defaults to the installed\n"
+    "                              page table root (CR3/TTBR0_EL2)."
+  },
+  {
+    "handles",
+    "Prints the handles list.",
+    "Enumerates all handles in the UEFI handle database. Displays each handle\n"
+    "  with DML links to view handle details and associated protocols.",
+    "!handles",
+    "  (none)"
+  },
+  {
+    "linkedlist",
+    "Parses a UEFI style linked list of entries.",
+    "Walks a doubly-linked list and displays each entry using the debugger's\n"
+    "  dt command. Useful for debugging custom linked list structures.",
+    "!linkedlist <ListHead> <Type> <LinkField>",
+    "  ListHead   (required) - Address of the list head (LIST_ENTRY).\n"
+    "  Type       (required) - Type name of the structure containing the link.\n"
+    "  LinkField  (required) - Name of the LIST_ENTRY field within the structure."
+  },
+  {
+    "efierror",
+    "Translates an EFI error code.",
+    "Converts a UEFI status code (EFI_STATUS) to its symbolic name, such as\n"
+    "  EFI_SUCCESS, EFI_NOT_FOUND, EFI_INVALID_PARAMETER, etc.",
+    "!efierror <code>",
+    "  code  (required) - EFI status code value (in hex or decimal)."
+  },
+  {
+    "advlog",
+    "Prints the advanced logger memory log.",
+    "Reads and displays the Advanced Logger buffer contents. Supports reading\n"
+    "  the last N bytes of the log for large buffers.",
+    "!advlog [-t[bytes]] [address]",
+    "  -t[bytes]  (optional) - Show only the tail (last portion) of the log.\n"
+    "                          Optionally specify byte count (default: 0x1000).\n"
+    "                          Example: -t4096 shows last 4096 bytes.\n"
+    "  address    (optional) - Address of ADVANCED_LOGGER_INFO structure.\n"
+    "                          If omitted, attempts to find mLoggerInfo symbol."
+  },
+  {
+    "gcd",
+    "Commands for dumping GCD information.",
+    "Displays the Global Coherency Domain (GCD) memory space map. Shows base\n"
+    "  and end addresses, capabilities, attributes, and memory type for each\n"
+    "  GCD entry. In Patina environment, forwards to the JavaScript extension.",
+    "!gcd [audit]",
+    "  audit  (optional) - Filter out entries with skip attributes set."
+  },
+  // UEFI Debugger
+  {
+    "info",
+    "Queries information about the UEFI debugger",
+    "Sends the '?' command to the UEFI debugger monitor and displays the\n"
+    "  response. Shows debugger type, version, and capabilities.",
+    "!info",
+    "  (none)"
+  },
+  {
+    "loadcore",
+    "Loads a new Patina DXE Core to execute",
+    "Loads and transfers control to a new DXE core binary. Only supported in\n"
+    "  the Patina environment. The image is compressed and sent to the target.",
+    "!loadcore [/nogo] <ImagePath>",
+    "  /nogo      (optional) - Load the core but do not resume execution.\n"
+    "  ImagePath  (required) - File path to the DXE core PE image to load."
+  },
+  {
+    "monitor",
+    "Sends direct monitor commands",
+    "Sends a command string directly to the UEFI debugger monitor interface.\n"
+    "  Used for low-level debugger interaction and commands not exposed as\n"
+    "  extension commands.",
+    "!monitor <command>",
+    "  command  (required) - The monitor command string to execute. Running\n"
+    "                        '!monitor help' will list available monitor commands."
+  },
+  {
+    "modulebreak",
+    "Sets a break on load for the provided module.",
+    "Configures the debugger to break when a module with the specified name\n"
+    "  is loaded. Useful for debugging early module initialization."
+    "  Run !findall after hitting this breakpoint to load symbols for the module.",
+    "!modulebreak <modulename>",
+    "  modulename  (required) - Name of the module to break on (e.g., 'Shell')."
+  },
+  {
+    "readmsr",
+    "Reads a MSR value (x86 only)",
+    "Reads a Model Specific Register and displays its value. Only supported\n"
+    "  on x86/x64 targets.",
+    "!readmsr <index>",
+    "  index  (required) - MSR index in hexadecimal (e.g., 0x1A0 for IA32_MISC_ENABLE)."
+  },
+  {
+    "reboot",
+    "Reboots the system",
+    "Initiates a system reboot. Unloads all symbols and continues execution\n"
+    "  with the reboot flag set.",
+    "!reboot",
+    "  (none)"
+  },
+  // End marker
+  { NULL, NULL, NULL, NULL, NULL }
+};
+
+static VOID
+PrintCommandHelp (
+  PCSTR  CommandName
+  )
+{
+  const COMMAND_HELP_INFO  *Cmd;
+
+  for (Cmd = CommandHelpTable; Cmd->Name != NULL; Cmd++) {
+    if (_stricmp (CommandName, Cmd->Name) == 0) {
+      dprintf ("\n%s - %s\n", Cmd->Name, Cmd->ShortDescription);
+      dprintf ("\nDescription:\n  %s\n", Cmd->LongDescription);
+      dprintf ("\nUsage:\n  %s\n", Cmd->Usage);
+      dprintf ("\nParameters:\n%s\n", Cmd->Parameters);
+      return;
+    }
+  }
+
+  dprintf ("Unknown command: %s\n", CommandName);
+  dprintf ("Use !help to see a list of available commands.\n");
+}
+
 HRESULT CALLBACK
 help (
   PDEBUG_CLIENT4  Client,
@@ -144,10 +376,21 @@ help (
 {
   INIT_API ();
 
-  UNREFERENCED_PARAMETER (args);
+  // Skip leading whitespace
+  while (*args == ' ' || *args == '\t') {
+    args++;
+  }
+
+  // If a command name was provided, show detailed help for that command
+  if (*args != '\0') {
+    PrintCommandHelp (args);
+    EXIT_API ();
+    return S_OK;
+  }
 
   dprintf (
     "Help for uefiext.dll\n"
+    "  Use '!help <command>' for detailed information about a specific command.\n"
     "\nBasic Commands:\n"
     "  help                - Shows this help\n"
     "  init                - Detects and initializes windbg for debugging UEFI.\n"
@@ -169,12 +412,13 @@ help (
 
   // Only show Patina-specific commands if the extension is loaded
   if (gPatinaExtLoaded) {
-    dprintf ("  gcd                 - Commands for dumping GCD information (Patina Only).\n");
+    dprintf ("  gcd                 - Commands for dumping GCD information.\n");
   }
 
   dprintf (
     "\nUEFI Debugger:\n"
     "  info                - Queries information about the UEFI debugger\n"
+    "  loadcore            - Loads a new Patina DXE Core to execute\n"
     "  monitor             - Sends direct monitor commands\n"
     "  modulebreak         - Sets a break on load for the provided module. e.g. 'shell'\n"
     "  readmsr             - Reads a MSR value (x86 only)\n"
@@ -192,10 +436,10 @@ uefiext_init (
   PCSTR           args
   )
 {
-  ULONG  TargetClass = 0;
-  ULONG  TargetQual  = 0;
-  ULONG  Mask;
-  PCSTR  Output;
+  ULONG        TargetClass = 0;
+  ULONG        TargetQual  = 0;
+  ULONG        Mask;
+  std::string  Output;
 
   INIT_API ();
 
@@ -221,15 +465,15 @@ uefiext_init (
 
     // Don't run !monitor ? on QEMU targets, this causes a confusion between WinDbg and QEMU and we get
     // corrupted memory reads. It also isn't needed
-    if (strstr (Output, "UEFI") != NULL) {
+    if (Output.find ("UEFI") != std::string::npos) {
       // Detect if this is a UEFI software debugger.
       Output = MonitorCommandWithOutput (Client, "?", 0);
-      if ((strstr (Output, "Rust Debugger") != NULL) ||
-          (strstr (Output, "Patina Debugger") != NULL))
+      if ((Output.find ("Rust Debugger") != std::string::npos) ||
+          (Output.find ("Patina Debugger") != std::string::npos))
       {
         dprintf ("Patina Debugger detected.\n");
         gUefiEnv = PATINA;
-      } else if (strstr (Output, "DXE UEFI Debugger") != NULL) {
+      } else if (Output.find ("DXE UEFI Debugger") != std::string::npos) {
         dprintf ("DXE UEFI Debugger detected.\n");
         gUefiEnv = DXE;
       } else {
@@ -305,22 +549,14 @@ public:
 
 OutputCallbacks  mOutputCallback;
 
-PSTR
+std::string
 ExecuteCommandWithOutput (
   PDEBUG_CLIENT4  Client,
   PCSTR           Command
   )
 {
   PDEBUG_OUTPUT_CALLBACKS  Callbacks;
-  static CHAR              *Output = NULL;
-  SIZE_T                   Offset;
-  SIZE_T                   Length;
-
-  // To avoid complexity of tracking a shifting buffer, easier to just lazily free here.
-  if (Output != NULL) {
-    free (Output);
-    Output = NULL;
-  }
+  std::string              Output;
 
   mResponses.clear ();
 
@@ -333,35 +569,26 @@ ExecuteCommandWithOutput (
                   );
   Client->SetOutputCallbacks (Callbacks);
 
-  Length = 0;
   for (const auto &str : mResponses) {
-    Length += str.length ();
+    Output += str;
   }
 
-  Output = (CHAR *)malloc (Length + 1);
-  Offset = 0;
-  for (const auto &str : mResponses) {
-    memcpy (Output + Offset, str.c_str (), str.length ());
-    Offset += str.length ();
-  }
-
-  Output[Offset] = '\0';
   return Output;
 }
 
-PSTR
+std::string
 MonitorCommandWithOutput (
   PDEBUG_CLIENT4  Client,
   PCSTR           MonitorCommand,
   ULONG           Offset
   )
 {
-  CHAR   Command[512];
-  PSTR   Output;
-  ULONG  Mask;
-  PCSTR  Preamble = "Target command response: ";
-  PCSTR  Ending   = "exdiCmd:";
-  PCSTR  Ok       = "OK\n";
+  CHAR         Command[512];
+  std::string  Output;
+  ULONG        Mask;
+  PCSTR        Preamble = "Target command response: ";
+  PCSTR        Ending   = "exdiCmd:";
+  PCSTR        Ok       = "OK\n";
 
   if (Offset == 0 ) {
     sprintf_s (Command, sizeof (Command), ".exdicmd target:0:%s", MonitorCommand);
@@ -375,19 +602,24 @@ MonitorCommandWithOutput (
   Client->SetOutputMask (Mask);
 
   // Clean up the output.
-  if (strstr (Output, Preamble) != NULL) {
-    Output = strstr (Output, Preamble) + strlen (Preamble);
+  size_t  PreamblePos = Output.find (Preamble);
+
+  if (PreamblePos != std::string::npos) {
+    Output = Output.substr (PreamblePos + strlen (Preamble));
   }
 
-  if (strstr (Output, Ending) != NULL) {
-    *strstr (Output, Ending) = 0;
+  size_t  EndingPos = Output.find (Ending);
+
+  if (EndingPos != std::string::npos) {
+    Output = Output.substr (0, EndingPos);
   }
 
   // If it has the OK string appended to the end, remove it
-  if (strlen (Output) > strlen (Ok)) {
-    size_t  Offset = strlen (Output) - strlen (Ok);
-    if (strcmp (Output + Offset, Ok) == 0) {
-      strcpy_s (Output + Offset, strlen (Ok) + 1, "\n");
+  size_t  OkLen = strlen (Ok);
+
+  if (Output.length () > OkLen) {
+    if (Output.compare (Output.length () - OkLen, OkLen, Ok) == 0) {
+      Output.replace (Output.length () - OkLen, OkLen, "\n");
     }
   }
 

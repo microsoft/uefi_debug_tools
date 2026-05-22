@@ -62,20 +62,20 @@ patinainit (
   PCSTR           args
   )
 {
-  PCSTR    Output;
-  HRESULT  hr = S_OK;
+  std::string  Output;
+  HRESULT      hr = S_OK;
 
   INIT_API ();
 
   Output = ExecuteCommandWithOutput (Client, ".scriptload PatinaExt.js");
-  if (strstr (Output, "JavaScript script successfully loaded") == NULL) {
+  if (Output.find ("JavaScript script successfully loaded") == std::string::npos) {
     dprintf ("Failed to load PatinaExt.js\n");
     hr = E_FAIL;
     goto Cleanup;
   }
 
   Output = ExecuteCommandWithOutput (Client, "!__patina_ext_init");
-  if (strstr (Output, "Patina extension initialized.") == NULL) {
+  if (Output.find ("Patina extension initialized.") == std::string::npos) {
     dprintf ("Failed to initialize Patina extension\n");
     hr = E_FAIL;
     goto Cleanup;

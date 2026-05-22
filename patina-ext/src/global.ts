@@ -8,6 +8,3 @@
 
 // Global variable representing the current version of the extension.
 declare var APP_VERSION: string;
-
-// Global variable representing the name of the module containing the Patina Core (`patina_dxe_core`).
-declare var PATINA_MODULE: string | null;
