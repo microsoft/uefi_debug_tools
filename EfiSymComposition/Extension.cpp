@@ -34,21 +34,21 @@ verbose (
   PCSTR         args
   )
 {
-    ComPtr<IDebugControl>  spControl;
+  ComPtr<IDebugControl>  spControl;
 
-    if (FAILED (pClient->QueryInterface (IID_PPV_ARGS (&spControl)))) {
-        return E_FAIL;
-    }
+  if (FAILED (pClient->QueryInterface (IID_PPV_ARGS (&spControl)))) {
+    return E_FAIL;
+  }
 
-    // Toggle verbose mode
-    g_VerboseLogging = !g_VerboseLogging;
+  // Toggle verbose mode
+  g_VerboseLogging = !g_VerboseLogging;
 
-    spControl->Output (
-                 DEBUG_OUTPUT_NORMAL,
-                 "EfiSymComposition verbose logging: %s\n",
-                 g_VerboseLogging ? "ENABLED" : "DISABLED"
-                 );
-    return S_OK;
+  spControl->Output (
+               DEBUG_OUTPUT_NORMAL,
+               "EfiSymComposition verbose logging: %s\n",
+               g_VerboseLogging ? "ENABLED" : "DISABLED"
+               );
+  return S_OK;
 }
 
 // **************************************************************************
@@ -64,100 +64,100 @@ DebugExtensionInitialize (
   PULONG                                                              /*pFlags*/
   )
 {
-    HRESULT  hr = S_OK;
+  HRESULT  hr = S_OK;
 
-    //
-    // Get the debug client to access the service manager
-    //
-    ComPtr<IDebugClient>  spClient;
+  //
+  // Get the debug client to access the service manager
+  //
+  ComPtr<IDebugClient>  spClient;
 
-    IfFailedReturn (DebugCreate (__uuidof (IDebugClient), (void **)&spClient));
+  IfFailedReturn (DebugCreate (__uuidof (IDebugClient), (void **)&spClient));
 
-    ComPtr<IDebugControl>  spControl;
+  ComPtr<IDebugControl>  spControl;
 
-    IfFailedReturn (spClient.As (&spControl));
+  IfFailedReturn (spClient.As (&spControl));
 
-    //
-    // Get the composition bridge
-    //
-    ComPtr<IDebugTargetCompositionBridge>  spCompositionBridge;
+  //
+  // Get the composition bridge
+  //
+  ComPtr<IDebugTargetCompositionBridge>  spCompositionBridge;
 
-    IfFailedReturn (spClient.As (&spCompositionBridge));
+  IfFailedReturn (spClient.As (&spCompositionBridge));
 
-    //
-    // Get the service manager for the current composition
-    //
-    ULONG                         systemId = 0;
-    ComPtr<IDebugServiceManager>  spServiceManager;
+  //
+  // Get the service manager for the current composition
+  //
+  ULONG                         systemId = 0;
+  ComPtr<IDebugServiceManager>  spServiceManager;
 
-    IfFailedReturn (spCompositionBridge->GetServiceManager (systemId, &spServiceManager));
+  IfFailedReturn (spCompositionBridge->GetServiceManager (systemId, &spServiceManager));
 
-    ComPtr<IDebugServiceManager5>  spServiceManager5;
+  ComPtr<IDebugServiceManager5>  spServiceManager5;
 
-    IfFailedReturn (spServiceManager.As (&spServiceManager5));
+  IfFailedReturn (spServiceManager.As (&spServiceManager5));
 
-    //
-    // There can be different types of images in a EFI environment, setup an aggregator and preserve existing symbols
-    // providers if needed.
-    //
-    ComPtr<IDebugServiceLayer>  spExistingProvider = nullptr;
+  //
+  // There can be different types of images in a EFI environment, setup an aggregator and preserve existing symbols
+  // providers if needed.
+  //
+  ComPtr<IDebugServiceLayer>  spExistingProvider = nullptr;
 
-    hr = spServiceManager->QueryService (DEBUG_SERVICE_SYMBOL_PROVIDER, IID_PPV_ARGS (&spExistingProvider));
+  hr = spServiceManager->QueryService (DEBUG_SERVICE_SYMBOL_PROVIDER, IID_PPV_ARGS (&spExistingProvider));
 
-    //
-    // Create and initialize our symbol provider service
-    //
-    ComPtr<EfiSymCompositionProvider>  spProvider;
+  //
+  // Create and initialize our symbol provider service
+  //
+  ComPtr<EfiSymCompositionProvider>  spProvider;
 
-    IfFailedReturn (MakeAndInitialize<EfiSymCompositionProvider>(&spProvider));
+  IfFailedReturn (MakeAndInitialize<EfiSymCompositionProvider>(&spProvider));
 
-    //
-    // If there's an existing symbol provider, use AggregateService to combine them.
-    // Otherwise, just register our provider.
-    //
-    if (spExistingProvider) {
-        IfFailedReturn (spServiceManager5->AggregateService (DEBUG_SERVICE_SYMBOL_PROVIDER, spProvider.Get ()));
-    } else {
-        IfFailedReturn (spProvider->RegisterServices (spServiceManager.Get ()));
-    }
+  //
+  // If there's an existing symbol provider, use AggregateService to combine them.
+  // Otherwise, just register our provider.
+  //
+  if (spExistingProvider) {
+    IfFailedReturn (spServiceManager5->AggregateService (DEBUG_SERVICE_SYMBOL_PROVIDER, spProvider.Get ()));
+  } else {
+    IfFailedReturn (spProvider->RegisterServices (spServiceManager.Get ()));
+  }
 
-    //
-    // Make sure that Elf composition is loaded.
-    //
-    IfFailedReturn (
-      spControl->Execute (
-                   DEBUG_OUTCTL_IGNORE,
-                   ".load ElfBinComposition",
-                   DEBUG_EXECUTE_NOT_LOGGED
-                   )
-      );
+  //
+  // Make sure that Elf composition is loaded.
+  //
+  IfFailedReturn (
+    spControl->Execute (
+                 DEBUG_OUTCTL_IGNORE,
+                 ".load ElfBinComposition",
+                 DEBUG_EXECUTE_NOT_LOGGED
+                 )
+    );
 
-    //
-    // Create the elf service and stash the pointer for later use.
-    //
-    ComPtr<IDebugTargetComposition>  spCompositionManager;
+  //
+  // Create the elf service and stash the pointer for later use.
+  //
+  ComPtr<IDebugTargetComposition>  spCompositionManager;
 
-    IfFailedReturn (spCompositionBridge->GetCompositionManager (&spCompositionManager));
+  IfFailedReturn (spCompositionBridge->GetCompositionManager (&spCompositionManager));
 
-    ComPtr<IDebugServiceLayer>  spElfProvider;
+  ComPtr<IDebugServiceLayer>  spElfProvider;
 
-    IfFailedReturn (
-      spCompositionManager->CreateComponent (
-                              DEBUG_COMPONENT_ELFIMAGE_SYMBOLPROVIDER,
-                              &spElfProvider
-                              )
-      );
+  IfFailedReturn (
+    spCompositionManager->CreateComponent (
+                            DEBUG_COMPONENT_ELFIMAGE_SYMBOLPROVIDER,
+                            &spElfProvider
+                            )
+    );
 
-    // convert to the symbol provider and store globally
-    ComPtr<ISvcSymbolProvider2>  spElfSymbolProvider;
+  // convert to the symbol provider and store globally
+  ComPtr<ISvcSymbolProvider2>  spElfSymbolProvider;
 
-    IfFailedReturn (spElfProvider.As (&spElfSymbolProvider));
-    spProvider->SetSymbolProvider (spElfSymbolProvider.Detach ());
+  IfFailedReturn (spElfProvider.As (&spElfSymbolProvider));
+  spProvider->SetSymbolProvider (spElfSymbolProvider.Detach ());
 
-    // Store the debug client so we can get symbol paths
-    spProvider->SetDebugClient (spClient.Get ());
+  // Store the debug client so we can get symbol paths
+  spProvider->SetDebugClient (spClient.Get ());
 
-    return S_OK;
+  return S_OK;
 }
 
 extern "C"
@@ -166,12 +166,12 @@ DebugExtensionCanUnload (
   void
   )
 {
-    //
-    // We can successfully unload if there are no objects left.
-    //
-    auto  objCount = Microsoft::WRL::Module<InProc>::GetModule ().GetObjectCount ();
+  //
+  // We can successfully unload if there are no objects left.
+  //
+  auto  objCount = Microsoft::WRL::Module<InProc>::GetModule ().GetObjectCount ();
 
-    return (objCount == 0) ? S_OK : S_FALSE;
+  return (objCount == 0) ? S_OK : S_FALSE;
 }
 
 extern "C"
@@ -180,7 +180,7 @@ DebugExtensionUninitialize (
   void
   )
 {
-    // Nothing to clean up
+  // Nothing to clean up
 }
 
 extern "C"
@@ -189,5 +189,5 @@ DebugExtensionUnload (
   void
   )
 {
-    // Nothing to do here
+  // Nothing to do here
 }

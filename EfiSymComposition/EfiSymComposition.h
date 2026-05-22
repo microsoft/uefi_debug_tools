@@ -34,8 +34,7 @@ Abstract:
 #define KDEXT_64BIT
 #include <dbgeng.h>
 #include <dbgmodel.h>
-// #include <DbgServices.h>
-#include "DbgServicesUpdated.h" // TEMP until DbgServices.h is updated
+#include <DbgServices.h>
 #include <DbgServicesBridgeClient.h>
 
 #include <initguid.h>
