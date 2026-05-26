@@ -10,6 +10,12 @@ environment and may contain specifics for many different projects.
 The UEFI Windbg Extension is a plugin to add support for the UEFI firmware context.
 See the [UEFI Extension Readme](UefiDbgExt/readme.md) for more details.
 
+## EfiSymComposition
+
+EfiSymComposition is a WinDbg Target Composition component that handles symbol
+resolution for UEFI ELF images. See the [EFI Symbol Composition Readme](EfiSymComposition/README.md)
+for more details.
+
 ## Patina Extension
 
 The Patina Extension is a plugin to add support for the Patina firmware context.
