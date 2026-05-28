@@ -74,23 +74,27 @@ typedef struct _HARDWARE_PTE_X64 {
 #define PDE_PER_PAGE_ARM64  512
 #define PPE_PER_PAGE_ARM64  512
 #define PXE_PER_PAGE_ARM64  512
+#define PLE_PER_PAGE_ARM64  16
 
 #define PTE_SHIFT_ARM64  3
 #define PTI_SHIFT_ARM64  12
 #define PDI_SHIFT_ARM64  21
 #define PPI_SHIFT_ARM64  30
 #define PXI_SHIFT_ARM64  39
+#define PLI_SHIFT_ARM64  48
 
 #define PPI_MASK_ARM64  (PPE_PER_PAGE_ARM64 - 1)
 #define PXI_MASK_ARM64  (PXE_PER_PAGE_ARM64 - 1)
+#define PLI_MASK_ARM64  (PLE_PER_PAGE_ARM64 - 1)
 
+#define GetPleOffsetARM64(va)  ((ULONG)(((ULONG64)(va) >> PLI_SHIFT_ARM64) & PLI_MASK_ARM64))
 #define GetPxeOffsetARM64(va)  ((ULONG)(((ULONG64)(va) >> PXI_SHIFT_ARM64) & PXI_MASK_ARM64))
 #define GetPpeOffsetARM64(va)  ((ULONG)(((ULONG64)(va) >> PPI_SHIFT_ARM64) & PPI_MASK_ARM64))
 #define GetPdeOffsetARM64(va)  ((ULONG)(((ULONG64)(va) >> PDI_SHIFT_ARM64) & (PDE_PER_PAGE_ARM64 - 1)))
 #define GetPteOffsetARM64(va)  ((ULONG)(((ULONG64)(va) >> PTI_SHIFT_ARM64) & (PTE_PER_PAGE_ARM64 - 1)))
 
-#define VA_BITS_ARM64  48
-#define VA_MASK_ARM64  (((ULONG64)1 << VA_BITS_ARM64) - 1)
+#define VA_BITS_ARM64(LEVELS)  ((LEVELS) == 5 ? 52 : 48)
+#define VA_MASK_ARM64(LEVELS)  (((ULONG64)1 << VA_BITS_ARM64(LEVELS)) - 1)
 
 #define ARM64_TCR_T0SZ_MASK   0x3f
 #define ARM64_TCR_T1SZ_MASK   0x00000000003f0000ULL
@@ -388,41 +392,6 @@ GetCr0Value (
   return (ULONG)GetRegisterValue ("cr0");
 }
 
-ULONG
-GetPageTableLevels (
-  _In_ ULONG  TargetMachine
-  )
-{
-  ULONG    Cr0;
-  ULONG    PagingLevels;
-  ULONG64  PhysicalAddress;
-
-  PagingLevels    = 0;
-  PhysicalAddress = 0;
-  switch (TargetMachine) {
-    case IMAGE_FILE_MACHINE_AMD64:
-      //
-      // By default, obtain the paging level from the hardware. Follow
-      // the recipe for determining whether five-level paging is enabled.
-      //
-
-      PagingLevels = 4;
-      Cr0          = (ULONG)GetRegisterValue ("cr0");
-
-      // TODO: Refer EFER to determine if 5 level paging
-      break;
-    case IMAGE_FILE_MACHINE_ARM64:
-      PagingLevels = 4;
-      VerbOut ("Assuming %d level page table\n", PagingLevels);
-
-      // TODO: Read regs to determine
-
-      break;
-  }
-
-  return PagingLevels;
-}
-
 BOOLEAN
 ParseRegsForReg (
   _In_ PCSTR     Regs,
@@ -444,6 +413,51 @@ ParseRegsForReg (
   }
 
   return (RegPos != NULL);
+}
+
+ULONG
+GetPageTableLevels (
+  _In_ PDEBUG_CLIENT4  Client,
+  _In_ ULONG           TargetMachine
+  )
+{
+  ULONG        Cr0;
+  ULONG        PagingLevels;
+  ULONG64      PhysicalAddress;
+  ULONG64      Tcr;
+  ULONG        T0sz;
+  std::string  Regs;
+
+  PagingLevels    = 0;
+  PhysicalAddress = 0;
+  switch (TargetMachine) {
+    case IMAGE_FILE_MACHINE_AMD64:
+      //
+      // By default, obtain the paging level from the hardware. Follow
+      // the recipe for determining whether five-level paging is enabled.
+      //
+
+      PagingLevels = 4;
+      Cr0          = (ULONG)GetRegisterValue ("cr0");
+
+      // TODO: Refer EFER to determine if 5 level paging
+      break;
+    case IMAGE_FILE_MACHINE_ARM64:
+      PagingLevels = 4;
+      Regs         = MonitorCommandWithOutput (Client, Format ("arch regs").c_str (), 0);
+      if (ParseRegsForReg (Regs.c_str (), "tcr_el2", &Tcr)) {
+        T0sz = (ULONG)((Tcr >> ARM64_TCR_T0SZ_SHIFT) & ARM64_TCR_T0SZ_MASK);
+        if ((T0sz != 0) && (T0sz < 16)) {
+          PagingLevels = 5;
+        }
+      } else {
+        VerbOut ("Failed to read tcr_el2, assuming %d level page table\n", PagingLevels);
+      }
+
+      break;
+  }
+
+  return PagingLevels;
 }
 
 ULONG64
@@ -481,7 +495,7 @@ GetPageTableRoot (
   }
 
   if (Levels != NULL) {
-    *Levels = GetPageTableLevels (g_TargetMachine);
+    *Levels = GetPageTableLevels (Client, g_TargetMachine);
   }
 
 Exit:
@@ -908,9 +922,7 @@ GetPteAddressARM64 (
   _In_ ULONG    PagingLevels = 4
   )
 {
-  UNREFERENCED_PARAMETER (PagingLevels);
-
-  return (((((ULONG64)(Va) & VA_MASK_ARM64) >> PTI_SHIFT (0)) << PTE_SHIFT_ARM64) +  ARM64_PTE_BASE (SelfMapIndex));
+  return (((((ULONG64)(Va) & VA_MASK_ARM64 (PagingLevels)) >> PTI_SHIFT (0)) << PTE_SHIFT_ARM64) +  ARM64_PTE_BASE (SelfMapIndex));
 }
 
 ULONG64
@@ -920,9 +932,7 @@ GetPdeAddressARM64 (
   _In_ ULONG    PagingLevels = 4
   )
 {
-  UNREFERENCED_PARAMETER (PagingLevels);
-
-  return (((((ULONG64)(Va) & VA_MASK_ARM64) >> PTI_SHIFT (1)) << PTE_SHIFT_ARM64) + ARM64_PDE_BASE (SelfMapIndex));
+  return (((((ULONG64)(Va) & VA_MASK_ARM64 (PagingLevels)) >> PTI_SHIFT (1)) << PTE_SHIFT_ARM64) + ARM64_PDE_BASE (SelfMapIndex));
 }
 
 ULONG64
@@ -932,9 +942,7 @@ GetPpeAddressARM64 (
   _In_ ULONG    PagingLevels = 4
   )
 {
-  UNREFERENCED_PARAMETER (PagingLevels);
-
-  return (((((ULONG64)(Va) & VA_MASK_ARM64) >> PTI_SHIFT (2)) << PTE_SHIFT_ARM64) + ARM64_PPE_BASE (SelfMapIndex));
+  return (((((ULONG64)(Va) & VA_MASK_ARM64 (PagingLevels)) >> PTI_SHIFT (2)) << PTE_SHIFT_ARM64) + ARM64_PPE_BASE (SelfMapIndex));
 }
 
 ULONG64
@@ -944,9 +952,7 @@ GetPxeAddressARM64 (
   _In_ ULONG    PagingLevels = 4
   )
 {
-  UNREFERENCED_PARAMETER (PagingLevels);
-
-  return (((((ULONG64)(Va) & VA_MASK_ARM64) >> PTI_SHIFT (3)) << PTE_SHIFT_ARM64) +  ARM64_PXE_BASE (SelfMapIndex));
+  return (((((ULONG64)(Va) & VA_MASK_ARM64 (PagingLevels)) >> PTI_SHIFT (3)) << PTE_SHIFT_ARM64) +  ARM64_PXE_BASE (SelfMapIndex));
 }
 
 std::string
@@ -1029,6 +1035,7 @@ DumpPteArm64 (
   __in ULONG64         Flags
   )
 {
+  ULONG               PleOffset;
   ULONG               PxeOffset;
   ULONG               PpeOffset;
   ULONG               PdeOffset;
@@ -1056,21 +1063,35 @@ DumpPteArm64 (
   //
 
   PhysicalAddress = GetPageTableRoot (Client, UserRoot, &PagingLevels, &Address);
+  PleOffset       = GetPleOffsetARM64 (Address);
   PxeOffset       = GetPxeOffsetARM64 (Address);
   PpeOffset       = GetPpeOffsetARM64 (Address);
   PdeOffset       = GetPdeOffsetARM64 (Address);
   PteOffset       = GetPteOffsetARM64 (Address);
   PageOffset      = ((ULONG)(Address << 20)) >> 20;
 
-  dprintf (
-    "VA: %s %03x %03x %03x %03x %03x\n",
-    AddressStr.c_str (),
-    PxeOffset,
-    PpeOffset,
-    PdeOffset,
-    PteOffset,
-    PageOffset
-    );
+  if (PagingLevels == 5) {
+    dprintf (
+      "VA: %s %02x %03x %03x %03x %03x %03x\n",
+      AddressStr.c_str (),
+      PleOffset,
+      PxeOffset,
+      PpeOffset,
+      PdeOffset,
+      PteOffset,
+      PageOffset
+      );
+  } else {
+    dprintf (
+      "VA: %s %03x %03x %03x %03x %03x\n",
+      AddressStr.c_str (),
+      PxeOffset,
+      PpeOffset,
+      PdeOffset,
+      PteOffset,
+      PageOffset
+      );
+  }
 
   if (PhysicalAddress == 0) {
     dprintf ("PageTableRoot is NULL\n");
@@ -1082,6 +1103,11 @@ DumpPteArm64 (
 
   if (Flags & FLAG_IGNORE_SELFMAP) {
     dprintf ("Ignoring self map\n");
+  } else if (PagingLevels == 5) {
+    //
+    // Self-map traversal is only implemented for 4-level paging.
+    //
+    dprintf ("Skipping self map detection for 5 level paging\n");
   } else {
     //
     // Search backwards for self-mapped PTE.
@@ -1163,6 +1189,24 @@ DumpPteArm64 (
     }
   } else {
     DisplayRoot (PhysicalAddress);
+
+    //
+    // Get PLE (level -1, only present with 5-level paging)
+    //
+
+    if (PagingLevels >= 5) {
+      PhysicalAddress = PhysicalAddress + PleOffset * sizeof (Pte);
+      ReadPte (PhysicalAddress, &Pte);
+      DisplayHardwarePte ("Ple", PhysicalAddress);
+      DisplayPte (&Pte, 5);
+      dprintf ("\n");
+      if (Pte.Valid == 0) {
+        dprintf ("PLE Invalid\n");
+        return;
+      }
+
+      PhysicalAddress = Pte.PageFrameNumber << ARM64_PAGE_SHIFT;
+    }
 
     //
     // Get PXE
