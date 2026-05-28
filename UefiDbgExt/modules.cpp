@@ -35,7 +35,7 @@ LoadCompositionExtensions (
     dprintf ("Loading target composition extensions.\n");
     g_ExtControl->Execute (
                     DEBUG_OUTCTL_THIS_CLIENT,
-                    ".load ELFBinComposition",
+                    ".load EfiSymComposition",
                     DEBUG_EXECUTE_DEFAULT
                     );
 

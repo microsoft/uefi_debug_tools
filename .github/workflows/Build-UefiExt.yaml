@@ -36,14 +36,23 @@ jobs:
 
       - name: Setup MsBuild
         uses: microsoft/setup-msbuild@v2
-      
+
+      - name: Setup NuGet
+        uses: nuget/setup-nuget@v2
+
       - name: Setup node
         uses: actions/setup-node@v3
         with:
           node-version: '22'
 
+      - name: Restore EfiSymComposition NuGet packages
+        run: nuget restore EfiSymComposition\packages.config -PackagesDirectory EfiSymComposition\packages
+
       - name: Build DLL
         run: msbuild UefiDbgExt\uefiext.vcxproj -property:Configuration=${{ matrix.configuration }} -property:Platform=${{ matrix.platform }}
+
+      - name: Build EfiSymComposition DLL
+        run: msbuild EfiSymComposition\EfiSymComposition.vcxproj -property:Configuration=${{ matrix.configuration }} -property:Platform=${{ matrix.platform }}
 
       - name: Build Javascript Extension
         run: npm install && npm run build
@@ -56,6 +65,7 @@ jobs:
           name: UefiDbgExt-${{ matrix.platform }}-${{ matrix.configuration }}
           path: |
             UefiDbgExt\${{ matrix.platform }}\${{ matrix.configuration }}\uefiext.dll
+            EfiSymComposition\${{ matrix.platform }}\${{ matrix.configuration }}\EfiSymComposition.dll
             ${{ env.PATINA_OUTPUT_DIR }}
 
       - name: Publish Release Asset
@@ -63,5 +73,5 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
-          Compress-Archive -Path UefiDbgExt\${{ matrix.platform }}\${{ matrix.configuration }}\uefiext.dll, ${{ env.PATINA_OUTPUT_DIR }} -DestinationPath UefiExt_${{ matrix.platform }}.zip
+          Compress-Archive -Path UefiDbgExt\${{ matrix.platform }}\${{ matrix.configuration }}\uefiext.dll, EfiSymComposition\${{ matrix.platform }}\${{ matrix.configuration }}\EfiSymComposition.dll, ${{ env.PATINA_OUTPUT_DIR }} -DestinationPath UefiExt_${{ matrix.platform }}.zip
           gh release upload ${{ github.event.release.tag_name }} UefiExt_${{ matrix.platform }}.zip
