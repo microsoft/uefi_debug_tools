@@ -1,0 +1,55 @@
+#
+# GitHub Action Workflow for packaging scripts.
+#
+# Copyright (c) Microsoft Corporation
+#
+# SPDX-License-Identifier: BSD-2-Clause-Patent
+#
+
+name: "Package Scripts"
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  release:
+    types: [published]
+
+jobs:
+  build-scripts:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: x64
+            runs-on: windows-2022
+          - platform: arm64
+            runs-on: windows-11-arm
+    runs-on: ${{ matrix.runs-on }}
+    permissions:
+      contents: write
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          architecture: ${{ matrix.platform }}
+
+      - name: Install dependencies
+        run: pip install -r pip-requirements.txt
+
+      - name: Build ComToTcpServer binary
+        run: pyinstaller --onefile --name ComToTcpServer Scripts\ComToTcpServer.py
+
+      - name: Publish Release Asset
+        if: ${{ github.event_name == 'release' }}
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          Compress-Archive -Path dist\ComToTcpServer.exe -DestinationPath Scripts_${{ matrix.platform }}.zip
+          gh release upload ${{ github.event.release.tag_name }} Scripts_${{ matrix.platform }}.zip

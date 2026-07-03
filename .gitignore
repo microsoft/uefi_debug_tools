@@ -19,3 +19,8 @@ EfiSymComposition/ARM64/
 EfiSymComposition/packages/
 EfiSymComposition/.vs/
 EfiSymComposition/EfiSymComposition.vcxproj.user
+
+# Pyinstaller Build
+build/
+dist/
+*.spec
