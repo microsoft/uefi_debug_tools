@@ -6,11 +6,13 @@
 #
 
 import argparse
+import ctypes
 import logging
 import pywintypes
 import queue
 import serial
 import socket
+import sys
 import threading
 import time
 import win32file
@@ -86,6 +88,43 @@ serial_logger = logging.getLogger("serial")
 # Buffers for incomplete lines
 _line_buffer_in = ""
 _line_buffer_out = ""
+
+
+def is_admin() -> bool:
+    """Return True if the current process has administrator privileges."""
+    try:
+        return bool(ctypes.windll.shell32.IsUserAnAdmin())
+    except Exception:
+        return False
+
+
+def ensure_admin() -> None:
+    """Ensure the script is running elevated, relaunching if necessary.
+
+    If the process is not already running as administrator, relaunch it
+    with the same arguments via a UAC prompt and exit the current
+    (non-elevated) process.
+    """
+    if is_admin():
+        return
+
+    script_logger.info(
+        "Connecting to a named pipe requires administrator privileges. "
+        "Requesting elevation..."
+    )
+
+    params = " ".join(f'"{arg}"' for arg in sys.argv[1:])
+    result = ctypes.windll.shell32.ShellExecuteW(
+        None, "runas", sys.executable, f'"{sys.argv[0]}" {params}', None, 1
+    )
+
+    # ShellExecuteW returns a value greater than 32 on success.
+    if result <= 32:
+        script_logger.error(
+            "Failed to obtain administrator privileges. Exiting."
+        )
+
+    sys.exit(0)
 
 
 def clear_queue(q: queue.Queue) -> None:
@@ -361,6 +400,10 @@ def main() -> None:
         return
 
     setup_logging()
+
+    # Connecting to a named pipe requires administrator privileges.
+    if args.pipe is not None:
+        ensure_admin()
 
     script_logger.info("COM to TCP Bridge Server")
     script_logger.info(f"Arguments: {args}")
