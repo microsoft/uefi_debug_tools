@@ -8,11 +8,11 @@ namespace Visualizers.Collections {
     return [
       new host.typeSignatureRegistration(
         Tree,
-        "patina_internal_collections::rbt::Rbt<*>",
+        "patina_internal_core::collections::rbt::Rbt<*>",
       ),
       new host.typeSignatureRegistration(
         Node,
-        "patina_internal_collections::node::Node<*>",
+        "patina_internal_core::collections::node::Node<*>",
       ),
     ];
   }
