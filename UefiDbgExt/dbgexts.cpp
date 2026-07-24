@@ -17,6 +17,7 @@ Abstract:
 
 #include "dbgexts.h"
 #include <strsafe.h>
+#include "patina_datamodel.h"
 
 PDEBUG_CLIENT4    g_ExtClient;
 PDEBUG_CONTROL    g_ExtControl;
@@ -156,6 +157,12 @@ DebugExtensionInitialize (
 
     DebugControl->Release ();
   }
+
+  //
+  // Register the native data model visualizers. This is best-effort: if it fails, the classic (wdbgexts) commands
+  // remain fully functional, so the overall extension load still succeeds.
+  //
+  PatinaDataModelInitialize ();
 
   DebugClient->Release ();
   return Hr;
@@ -483,6 +490,11 @@ DebugExtensionUninitialize (
     g_EventClient->Release ();
     g_EventClient = NULL;
   }
+
+  //
+  // Unregister the native data model visualizers and release the data model interfaces.
+  //
+  PatinaDataModelUninitialize ();
 
   return;
 }

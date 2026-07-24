@@ -17,8 +17,7 @@ Abstract:
 #include "uefiext.h"
 #include <vector>
 
-UEFI_ENV  gUefiEnv         = DXE;
-BOOL      gPatinaExtLoaded = FALSE;
+UEFI_ENV  gUefiEnv = DXE;
 ULONG     g_TargetMachine;
 
 HRESULT
@@ -283,12 +282,15 @@ static const COMMAND_HELP_INFO  CommandHelpTable[] = {
   },
   {
     "gcd",
-    "Commands for dumping GCD information.",
-    "Displays the Global Coherency Domain (GCD) memory space map. Shows base\n"
-    "  and end addresses, capabilities, attributes, and memory type for each\n"
-    "  GCD entry. In Patina environment, forwards to the JavaScript extension.",
-    "!gcd [audit]",
-    "  audit  (optional) - Filter out entries with skip attributes set."
+    "Dumps the GCD memory map.",
+    "Displays the Global Coherency Domain (GCD) memory space map: base/end\n"
+    "  addresses, capabilities, attributes, and memory type for each block. In\n"
+    "  the Patina environment this is a native C++ walk of the GCD tree, shown a\n"
+    "  0x50-block chunk at a time.",
+    "!gcd [C<n> | <addr> | audit]",
+    "  C<n>   (optional) - Show 0x50-block chunk n (Patina; e.g. C0, C2).\n"
+    "  addr   (optional) - Show the block containing addr with context (Patina).\n"
+    "  audit  (optional) - Filter out entries with skip attributes set (EDK2)."
   },
   // UEFI Debugger
   {
@@ -410,9 +412,9 @@ help (
     "  advlog              - Prints the advanced logger memory log.\n"
     );
 
-  // Only show Patina-specific commands if the extension is loaded
-  if (gPatinaExtLoaded) {
-    dprintf ("  gcd                 - Commands for dumping GCD information.\n");
+  // Only show Patina-specific commands in the Patina environment
+  if (gUefiEnv == PATINA) {
+    dprintf ("  gcd                 - Dumps the GCD memory map (native C++).\n");
   }
 
   dprintf (
@@ -498,16 +500,6 @@ uefiext_init (
                       "!uefiext.findmodule",
                       DEBUG_EXECUTE_DEFAULT
                       );
-    }
-
-    if (gUefiEnv == PATINA) {
-      INIT_API (); // The other extension commands may call `EXIT_API()`, so we need to re-initialize.
-      g_ExtControl->Execute (
-                      DEBUG_OUTCTL_THIS_CLIENT,
-                      "!uefiext.patinainit",
-                      DEBUG_EXECUTE_DEFAULT
-                      );
-      dprintf ("Patina extension loaded: %s\n", gPatinaExtLoaded ? "Yes" : "No");
     }
   }
 

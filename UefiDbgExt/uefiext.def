@@ -30,7 +30,6 @@ EXPORTS
     readmsr
     reboot
     setenv
-    patinainit
     gcd
 
 ;--------------------------------------------------------------------
@@ -42,5 +41,7 @@ EXPORTS
     DebugExtensionNotify
     DebugExtensionInitialize
     DebugExtensionUninitialize
+    DebugExtensionCanUnload
+    DebugExtensionUnload
     KnownStructOutput
     _EFN_Analyze
