@@ -16,11 +16,6 @@ EfiSymComposition is a WinDbg Target Composition component that handles symbol
 resolution for UEFI ELF images. See the [EFI Symbol Composition Readme](EfiSymComposition/README.md)
 for more details.
 
-## Patina Extension
-
-The Patina Extension is a plugin to add support for the Patina firmware context.
-See the [Patina Extension Readme](patina-ext/README.md) for more details.
-
 ## Scripts
 
 This repo also includes some scripts that can be useful in UEFI firmware debugging.

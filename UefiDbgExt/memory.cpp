@@ -158,17 +158,8 @@ gcd (
 
   INIT_API ();
 
-  if (gPatinaExtLoaded) {
-    std::string  command = BuildQuotedCommand ("!__gcd", args);
-
-    if ((hr = g_ExtControl->Execute (
-                              DEBUG_OUTCTL_ALL_CLIENTS,
-                              command.c_str (),
-                              DEBUG_EXECUTE_DEFAULT
-                              )) != S_OK)
-    {
-      goto Cleanup;
-    }
+  if (gUefiEnv == PATINA) {
+    PatinaGcdCommand (Client, args);
   } else {
     ULONG64  HeadAddress;
     ULONG64  GcdEntry;
@@ -223,7 +214,6 @@ gcd (
     dprintf ("-------------------------------------------------------------------------------------------------------\n");
   }
 
-Cleanup:
   EXIT_API ();
   return hr;
 }

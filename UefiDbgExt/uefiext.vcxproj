@@ -1,4 +1,4 @@
-﻿<?xml version="1.0" encoding="utf-8"?>
+<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="14.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|ARM">
@@ -147,7 +147,7 @@
       <TargetMachine>MachineX86</TargetMachine>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>uefiext.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -163,7 +163,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>uefiext.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -179,7 +179,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>uefiext.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -195,7 +195,7 @@
     <Link>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <SubSystem>Windows</SubSystem>
-      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>uefiext.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -213,7 +213,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>uefiext.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -230,7 +230,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>uefiext.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -247,7 +247,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>uefiext.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -264,7 +264,7 @@
       <SubSystem>Windows</SubSystem>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
       <OptimizeReferences>true</OptimizeReferences>
-      <AdditionalDependencies>dbgeng.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>dbgeng.lib;runtimeobject.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <ModuleDefinitionFile>uefiext.def</ModuleDefinitionFile>
     </Link>
   </ItemDefinitionGroup>
@@ -280,6 +280,11 @@
     <ClCompile Include="efiutil.cpp" />
     <ClCompile Include="eficompress.cpp" />
     <ClCompile Include="patina.cpp" />
+    <ClCompile Include="patina_datamodel.cpp">
+      <LanguageStandard>stdcpp17</LanguageStandard>
+      <ExceptionHandling>Sync</ExceptionHandling>
+      <RuntimeTypeInfo>true</RuntimeTypeInfo>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="readme.md" />
@@ -288,6 +293,8 @@
   <ItemGroup>
     <ClInclude Include="dbgexts.h" />
     <ClInclude Include="uefiext.h" />
+    <ClInclude Include="patina_datamodel.h" />
+    <ClInclude Include="DbgModelClientEx.h" />
   </ItemGroup>
   <ItemGroup>
     <ResourceCompile Include="uefiext.rc" />
@@ -295,17 +302,4 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
-  <PropertyGroup>
-    <BuildPatinaExtension Condition="'$(BuildPatinaExtension)'==''">false</BuildPatinaExtension>
-    <LoadPatinaExtension Condition="'$(LoadPatinaExtension)'==''">false</LoadPatinaExtension>
-  </PropertyGroup>
-  <Target Name="BuildPatinaExtension" AfterTargets="Build" Condition="'$(BuildPatinaExtension)'=='true'">
-    <Message Importance="high" Text="Building Patina Extension (npm run build)..." />
-    <Exec Command="npm install" WorkingDirectory="$(ProjectDir)..\patina-ext" />
-    <Exec Command="npm run build" WorkingDirectory="$(ProjectDir)..\patina-ext" />
-  </Target>
-  <Target Name="DeployPatinaExtension" AfterTargets="BuildPatinaExtension" Condition="'$(DeployPatinaExtension)'=='true'">
-    <Message Importance="high" Text="Loading Patina Extension into debugger..." />
-    <Exec Command="npm run deploy" WorkingDirectory="$(ProjectDir)..\patina-ext" />
-  </Target>
 </Project>
