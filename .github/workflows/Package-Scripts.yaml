@@ -43,8 +43,11 @@ jobs:
       - name: Install dependencies
         run: pip install -r pip-requirements.txt
 
+      - name: Run pywin32 post-install
+        run: python "$env:pythonLocation\Scripts\pywin32_postinstall.py" -install
+
       - name: Build ComToTcpServer binary
-        run: pyinstaller --onefile --name ComToTcpServer Scripts\ComToTcpServer.py
+        run: pyinstaller --onefile --name ComToTcpServer --collect-all pywin32 Scripts\ComToTcpServer.py
 
       - name: Publish Release Asset
         if: ${{ github.event_name == 'release' }}
