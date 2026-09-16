@@ -63,6 +63,11 @@ parser.add_argument(
     help="Shows all serial traffic (including debugger) on the console.",
 )
 parser.add_argument(
+    "--no-filter",
+    action="store_true",
+    help="Forwards all serial traffic to TCP instead of only GDB RSP traffic. To be used if filtering causes problems",
+)
+parser.add_argument(
     "-d", "--debug", action="store_true", help="Enables debug printing."
 )
 parser.add_argument(
@@ -76,6 +81,7 @@ args = parser.parse_args()
 BUFFER_SIZE = 4096 * 2
 SERIAL_CHUNK_SIZE = 32
 SERIAL_CHUNK_DELAY = 0.00025
+MAX_RSP_PACKET_SIZE = 1024 * 1024
 
 # Global queues used between threads.
 out_queue = queue.Queue()
@@ -88,6 +94,131 @@ serial_logger = logging.getLogger("serial")
 # Buffers for incomplete lines
 _line_buffer_in = ""
 _line_buffer_out = ""
+
+
+class GdbRspFilter:
+    """Extract GDB Remote Serial Protocol traffic from a mixed byte stream."""
+
+    _PACKET_START_BYTES = (ord("$"), ord("%"))
+
+    def __init__(self) -> None:
+        self._lock = threading.Lock()
+        self.reset()
+
+    def reset(self) -> None:
+        """Reset packet and acknowledgement state for a new TCP connection."""
+        with self._lock:
+            self._serial_packet = bytearray()
+            self._serial_hash_index = None
+            self._client_packet = bytearray()
+            self._client_hash_index = None
+            self._expected_acknowledgements = 0
+            self._awaiting_no_ack_response = False
+            self._no_ack_mode = False
+
+    @staticmethod
+    def _is_valid_packet(packet: bytearray, hash_index: int) -> bool:
+        try:
+            expected_checksum = int(
+                bytes(packet[hash_index + 1:hash_index + 3]), 16
+            )
+        except ValueError:
+            return False
+
+        actual_checksum = sum(packet[1:hash_index]) & 0xFF
+        return actual_checksum == expected_checksum
+
+    def observe_client_data(self, data: bytes) -> None:
+        """Track client packets for target acknowledgement filtering."""
+        with self._lock:
+            for value in data:
+                if not self._client_packet:
+                    if value == ord("$"):
+                        self._client_packet.append(value)
+                    continue
+
+                if self._client_hash_index is None:
+                    if value == ord("$"):
+                        self._client_packet = bytearray((value,))
+                        continue
+                    self._client_packet.append(value)
+                    if value == ord("#"):
+                        self._client_hash_index = len(self._client_packet) - 1
+                else:
+                    self._client_packet.append(value)
+
+                if (
+                    self._client_hash_index is not None
+                    and len(self._client_packet)
+                    == self._client_hash_index + 3
+                ):
+                    if self._is_valid_packet(
+                        self._client_packet, self._client_hash_index
+                    ):
+                        if not self._no_ack_mode:
+                            self._expected_acknowledgements += 1
+                        payload = bytes(
+                            self._client_packet[1:self._client_hash_index]
+                        )
+                        if payload == b"QStartNoAckMode":
+                            self._awaiting_no_ack_response = True
+                    self._client_packet.clear()
+                    self._client_hash_index = None
+                elif len(self._client_packet) > MAX_RSP_PACKET_SIZE:
+                    self._client_packet.clear()
+                    self._client_hash_index = None
+
+    def filter_serial_data(self, data: bytes) -> bytes:
+        """Return only complete, valid target RSP packets and expected ACKs."""
+        filtered = bytearray()
+
+        with self._lock:
+            for value in data:
+                if not self._serial_packet:
+                    if (
+                        value in (ord("+"), ord("-"))
+                        and self._expected_acknowledgements > 0
+                    ):
+                        filtered.append(value)
+                        self._expected_acknowledgements -= 1
+                    elif value in self._PACKET_START_BYTES:
+                        self._serial_packet.append(value)
+                    continue
+
+                if self._serial_hash_index is None:
+                    if value in self._PACKET_START_BYTES:
+                        self._serial_packet = bytearray((value,))
+                        continue
+                    self._serial_packet.append(value)
+                    if value == ord("#"):
+                        self._serial_hash_index = len(self._serial_packet) - 1
+                else:
+                    self._serial_packet.append(value)
+
+                if (
+                    self._serial_hash_index is not None
+                    and len(self._serial_packet)
+                    == self._serial_hash_index + 3
+                ):
+                    if self._is_valid_packet(
+                        self._serial_packet, self._serial_hash_index
+                    ):
+                        filtered.extend(self._serial_packet)
+                        if self._awaiting_no_ack_response:
+                            payload = bytes(
+                                self._serial_packet[1:self._serial_hash_index]
+                            )
+                            self._awaiting_no_ack_response = False
+                            if payload == b"OK":
+                                self._no_ack_mode = True
+                                self._expected_acknowledgements = 0
+                    self._serial_packet.clear()
+                    self._serial_hash_index = None
+                elif len(self._serial_packet) > MAX_RSP_PACKET_SIZE:
+                    self._serial_packet.clear()
+                    self._serial_hash_index = None
+
+        return bytes(filtered)
 
 
 def is_admin() -> bool:
@@ -133,7 +264,7 @@ def clear_queue(q: queue.Queue) -> None:
         q.get()
 
 
-def socket_thread() -> None:
+def socket_thread(rsp_filter: GdbRspFilter | None) -> None:
     """Thread function that handles TCP socket connections.
 
     Creates a TCP server socket that listens for connections and manages
@@ -155,6 +286,8 @@ def socket_thread() -> None:
 
         # Clear pending socket output before starting a new connection.
         clear_queue(out_queue)
+        if rsp_filter is not None:
+            rsp_filter.reset()
 
         # use a short timeout to move on if no data is ready.
         conn.settimeout(0.01)
@@ -225,7 +358,7 @@ def log_serial_data(inout: bool, data: bytes) -> None:
         _line_buffer_out = buffer
 
 
-def listen_named_pipe() -> None:
+def listen_named_pipe(rsp_filter: GdbRspFilter | None) -> None:
     """Listen to a Windows named pipe for serial data.
 
     Continuously reads data from the named pipe specified in args.pipe
@@ -258,11 +391,16 @@ def listen_named_pipe() -> None:
                         continue
 
                     log_serial_data(False, data)
-                    out_queue.put(data)
+                    if rsp_filter is not None:
+                        data = rsp_filter.filter_serial_data(data)
+                    if data:
+                        out_queue.put(data)
 
                 while not in_queue.empty():
                     data = in_queue.get()
                     log_serial_data(True, data)
+                    if rsp_filter is not None:
+                        rsp_filter.observe_client_data(data)
                     win32file.WriteFile(handle, data, None)
 
         except pywintypes.error as e:
@@ -275,7 +413,7 @@ def listen_named_pipe() -> None:
                 quit = True
 
 
-def listen_com_port() -> None:
+def listen_com_port(rsp_filter: GdbRspFilter | None) -> None:
     """Listen to a COM serial port for data.
 
     Opens the COM port specified in args.comport with the baudrate from
@@ -302,11 +440,16 @@ def listen_com_port() -> None:
         if serial_port.in_waiting > 0:
             data = serial_port.read(size=serial_port.in_waiting)
             log_serial_data(False, data)
-            out_queue.put(data)
+            if rsp_filter is not None:
+                data = rsp_filter.filter_serial_data(data)
+            if data:
+                out_queue.put(data)
 
         while not in_queue.empty():
             data = in_queue.get()
             log_serial_data(True, data)
+            if rsp_filter is not None:
+                rsp_filter.observe_client_data(data)
 
             for i in range(0, len(data), SERIAL_CHUNK_SIZE):
                 chunk = data[i:i + SERIAL_CHUNK_SIZE]
@@ -408,16 +551,18 @@ def main() -> None:
     script_logger.info("COM to TCP Bridge Server")
     script_logger.info(f"Arguments: {args}")
 
+    rsp_filter = None if args.no_filter else GdbRspFilter()
+
     # Create the thread for the TCP port.
-    port_thread = threading.Thread(target=socket_thread)
+    port_thread = threading.Thread(target=socket_thread, args=(rsp_filter,))
     port_thread.daemon = True
     port_thread.start()
 
     try:
         if args.pipe is not None:
-            listen_named_pipe()
+            listen_named_pipe(rsp_filter)
         elif args.comport is not None:
-            listen_com_port()
+            listen_com_port(rsp_filter)
         else:
             raise Exception("No serial port to connect to!")
     except KeyboardInterrupt:
@@ -426,4 +571,5 @@ def main() -> None:
         script_logger.error(f"An error occurred: {e}")
 
 
-main()
+if __name__ == "__main__":
+    main()
