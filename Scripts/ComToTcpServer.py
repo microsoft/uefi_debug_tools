@@ -416,7 +416,7 @@ def main() -> None:
     try:
         if args.pipe is not None:
             listen_named_pipe()
-        if args.comport is not None:
+        elif args.comport is not None:
             listen_com_port()
         else:
             raise Exception("No serial port to connect to!")
