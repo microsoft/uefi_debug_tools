@@ -86,6 +86,7 @@ MAX_RSP_PACKET_SIZE = 1024 * 1024
 # Global queues used between threads.
 out_queue = queue.Queue()
 in_queue = queue.Queue()
+shutdown_event = threading.Event()
 
 # Loggers
 script_logger = logging.getLogger("script")
@@ -264,6 +265,36 @@ def clear_queue(q: queue.Queue) -> None:
         q.get()
 
 
+def create_rsp_packet(payload: bytes) -> bytes:
+    """Create a GDB Remote Serial Protocol packet for a payload."""
+    checksum = sum(payload) & 0xFF
+    return b"$" + payload + f"#{checksum:02x}".encode("ascii")
+
+
+def interactive_thread() -> None:
+    """Read and execute interactive commands from standard input."""
+
+    help = "Available commands: go (g), exit, help"
+
+    while not shutdown_event.is_set():
+        try:
+            command = input().strip().lower()
+        except EOFError:
+            return
+
+        if command == "help":
+            script_logger.info(help)
+        elif command == "go" or command == "g":
+            script_logger.info("Sending GDB continue command to the target.")
+            in_queue.put(create_rsp_packet(b"vCont;c"))
+        elif command == "exit":
+            script_logger.info("Exiting.")
+            shutdown_event.set()
+        elif command:
+            script_logger.warning(f"Unknown command: {command}")
+            script_logger.info(help)
+
+
 def socket_thread(rsp_filter: GdbRspFilter | None) -> None:
     """Thread function that handles TCP socket connections.
 
@@ -278,10 +309,14 @@ def socket_thread(rsp_filter: GdbRspFilter | None) -> None:
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     sock.bind(("", args.port))
     sock.listen()
+    sock.settimeout(0.1)
 
-    while True:
-        script_logger.info("Waiting for socket...")
-        conn, addr = sock.accept()
+    script_logger.info("Waiting for socket...")
+    while not shutdown_event.is_set():
+        try:
+            conn, addr = sock.accept()
+        except socket.timeout:
+            continue
         script_logger.info(f"Socket Connected - {addr}")
 
         # Clear pending socket output before starting a new connection.
@@ -294,7 +329,7 @@ def socket_thread(rsp_filter: GdbRspFilter | None) -> None:
 
         # process the queue.
         connected = True
-        while connected:
+        while connected and not shutdown_event.is_set():
             try:
                 while not out_queue.empty():
                     conn.sendall(out_queue.get())
@@ -370,7 +405,7 @@ def listen_named_pipe(rsp_filter: GdbRspFilter | None) -> None:
     """
     script_logger.info("Waiting for pipe...")
     quit = False
-    while not quit:
+    while not quit and not shutdown_event.is_set():
         try:
             handle = win32file.CreateFile(
                 args.pipe,
@@ -383,7 +418,7 @@ def listen_named_pipe(rsp_filter: GdbRspFilter | None) -> None:
             )
 
             script_logger.info("Pipe connected.")
-            while True:
+            while not shutdown_event.is_set():
                 if win32file.GetFileSize(handle) > 0:
                     hr, data = win32file.ReadFile(handle, BUFFER_SIZE)
                     if hr != 0:
@@ -407,7 +442,7 @@ def listen_named_pipe(rsp_filter: GdbRspFilter | None) -> None:
             if e.args[0] == 2:
                 if args.debug:
                     script_logger.debug("No pipe yet, waiting...")
-                time.sleep(1)
+                shutdown_event.wait(1)
             elif e.args[0] == 109:
                 script_logger.error("broken pipe")
                 quit = True
@@ -436,7 +471,7 @@ def listen_com_port(rsp_filter: GdbRspFilter | None) -> None:
     )
 
     script_logger.info(f"Opened {args.comport}.")
-    while True:
+    while not shutdown_event.is_set():
         if serial_port.in_waiting > 0:
             data = serial_port.read(size=serial_port.in_waiting)
             log_serial_data(False, data)
@@ -557,6 +592,11 @@ def main() -> None:
     port_thread = threading.Thread(target=socket_thread, args=(rsp_filter,))
     port_thread.daemon = True
     port_thread.start()
+
+    # Create interaction thread for user commands.
+    command_thread = threading.Thread(target=interactive_thread)
+    command_thread.daemon = True
+    command_thread.start()
 
     try:
         if args.pipe is not None:
